@@ -44,11 +44,14 @@ boost::filesystem::path RoArchive::path(const boost::filesystem::path &path)
 std::vector<char> IStream::read()
 {
     auto &s(get());
-    auto size(s.seekg(0, std::ios_base::end).tellg());
-    s.seekg(0);
-
     std::vector<char> buf;
-    buf.resize(size);
+    if (const auto privided = size()) {
+        buf.resize(*privided);
+    } else {
+        buf.resize(s.seekg(0, std::ios_base::end).tellg());
+        s.seekg(0);
+    }
+
     utility::binaryio::read(s, buf.data(), buf.size());
     return buf;
 }

@@ -18,6 +18,9 @@ public:
     virtual boost::filesystem::path path() const = 0;
     virtual std::istream& get() = 0;
     virtual void close() = 0;
+    /** File size, if known.
+     */
+    virtual boost::optional<std::size_t> size() const { return boost::none; }
 
     operator std::istream&() { return get(); }
 

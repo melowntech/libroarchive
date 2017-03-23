@@ -14,8 +14,14 @@ class FileIStream : public IStream {
 public:
     FileIStream(const fs::path &path)
         : path_(path)
-        , stream_(path.string())
-    {}
+    {
+        try {
+            stream_.open(path.string());
+        } catch (const std::ios_base::failure &e) {
+            LOGTHROW(err2, std::runtime_error)
+                << "Cannot open file file " << path << ": " << e.what() << ".";
+        }
+    }
 
     virtual boost::filesystem::path path() const { return path_; }
     virtual std::istream& get() { return stream_; }

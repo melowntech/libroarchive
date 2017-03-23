@@ -20,7 +20,7 @@ public:
     typedef utility::io::SubStreamDevice::Filedes Filedes;
 
     TarIStream(const fs::path &path, const Filedes &fd)
-        : path_(path)
+        : path_(path), size_(fd.end - fd.start)
         , buffer_(path, fd), stream_(&buffer_)
     {
         stream_.exceptions(std::ios::badbit | std::ios::failbit);
@@ -31,9 +31,11 @@ public:
     virtual std::istream& get() { return stream_; }
     virtual fs::path path() const { return path_; }
     virtual void close() {}
+    virtual boost::optional<std::size_t> size() const { return size_; }
 
 private:
-    fs::path path_;
+    const fs::path path_;
+    const std::size_t size_;
 
     std::unique_ptr<char[]> buf_;
     boost::iostreams::stream_buffer<utility::io::SubStreamDevice> buffer_;
@@ -51,7 +53,8 @@ findPrefix(const fs::path &path, const std::string &hint
     }
 
     LOGTHROW(err2, std::runtime_error)
-        << "No \"" << hint << "\" found in the archive at " << path << ".";
+        << "No \"" << hint << "\" found in the tarball archive at "
+        << path << ".";
     throw;
 }
 
