@@ -23,6 +23,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <boost/filesystem.hpp>
+
 #include "dbglog/dbglog.hpp"
 
 #include "utility/streams.hpp"
@@ -37,8 +40,8 @@ namespace {
 
 class FileIStream : public IStream {
 public:
-    FileIStream(const fs::path &path)
-        : path_(path)
+    FileIStream(const fs::path &path, const IStream::FilterInit &filterInit)
+        : IStream(filterInit), path_(path)
     {
         try {
             stream_.open(path.string());
@@ -46,10 +49,10 @@ public:
             LOGTHROW(err2, std::runtime_error)
                 << "Cannot open file file " << path << ": " << e.what() << ".";
         }
+        fis_.push(stream_);
     }
 
     virtual boost::filesystem::path path() const { return path_; }
-    virtual std::istream& get() { return stream_; }
     virtual void close() { stream_.close(); }
 
 private:
@@ -70,12 +73,21 @@ public:
     /** Get (wrapped) input stream for given file.
      *  Throws when not found.
      */
-    virtual IStream::pointer istream(const boost::filesystem::path &path) const
+    virtual IStream::pointer istream(const boost::filesystem::path &path
+                                     , const IStream::FilterInit &filterInit)
+        const
     {
         if (path.is_absolute()) {
-            return std::make_shared<FileIStream>(path);
+            return std::make_shared<FileIStream>(path, filterInit);
         }
-        return std::make_shared<FileIStream>(path_ / path);
+        return std::make_shared<FileIStream>(path_ / path, filterInit);
+    }
+
+    virtual bool exists(const boost::filesystem::path &path) const {
+        if (path.is_absolute()) {
+            return fs::exists(path);
+        }
+        return fs::exists(path_ / path);
     }
 };
 

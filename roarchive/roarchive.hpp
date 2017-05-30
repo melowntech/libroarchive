@@ -28,9 +28,11 @@
 
 #include <iostream>
 #include <memory>
+#include <functional>
 
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
 
 namespace roarchive {
 
@@ -39,9 +41,16 @@ namespace roarchive {
 class IStream {
 public:
     typedef std::shared_ptr<IStream> pointer;
+    typedef std::function<void(boost::iostreams::filtering_istream&)
+                          > FilterInit;
+
+    IStream(const IStream::FilterInit &filterInit) {
+        if (filterInit) { filterInit(fis_); }
+    }
+
     virtual ~IStream() {}
     virtual boost::filesystem::path path() const = 0;
-    virtual std::istream& get() = 0;
+    virtual std::istream& get() { return fis_; }
     virtual void close() = 0;
     /** File size, if known.
      */
@@ -52,10 +61,13 @@ public:
     /** Read whole file.
      */
     std::vector<char> read();
+
+protected:
+    boost::iostreams::filtering_istream fis_;
 };
 
 /** Generic read-only archive.
- *  Either plain directory or tarball (or zip archive in the future)
+ *  One of plain directory, tarball or zip archive.
  *
  * Allows unified filesystem-like access to read-only data stored in various
  * standard formats.
@@ -68,14 +80,24 @@ public:
      * subtree where known file is in the root of such subtree.
      *
      * Some implementations (tarball, zip find hint inside the archive. Others
-     * check whether hint is under given path (plan directory).
+     * check whether hint is under given path (plain directory).
      */
     RoArchive(const boost::filesystem::path &path
               , const boost::optional<std::string> &hint = boost::none);
 
+    /** Checks file existence.
+     */
+    bool exists(const boost::filesystem::path &path) const;
+
     /** Get input stream for file at given path.
      */
     IStream::pointer istream(const boost::filesystem::path &path) const;
+
+    /** Get input stream for file at given path.
+     *  Internal filter is initialized by given init function.
+     */
+    IStream::pointer istream(const boost::filesystem::path &path
+                             , const IStream::FilterInit &filterInit) const;
 
     /** Returns true in case of direct access to filesystem.
      *  Only directory "archive" supports this.

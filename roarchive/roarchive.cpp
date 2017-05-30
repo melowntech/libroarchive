@@ -57,7 +57,25 @@ RoArchive::RoArchive(const boost::filesystem::path &path
 
 IStream::pointer RoArchive::istream(const boost::filesystem::path &path) const
 {
-    return detail_->istream(path);
+    auto is(detail_->istream(path));
+    // set exceptions
+    is->get().exceptions(std::ios::badbit | std::ios::failbit);
+    return is;
+}
+
+IStream::pointer RoArchive::istream(const boost::filesystem::path &path
+                                    , const IStream::FilterInit &filterInit)
+    const
+{
+    auto is(detail_->istream(path, filterInit));
+    // set exceptions
+    is->get().exceptions(std::ios::badbit | std::ios::failbit);
+    return is;
+}
+
+bool RoArchive::exists(const boost::filesystem::path &path) const
+{
+    return detail_->exists(path);
 }
 
 boost::filesystem::path RoArchive::path(const boost::filesystem::path &path)

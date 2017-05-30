@@ -42,13 +42,11 @@ namespace {
 
 class ZipIStream : public IStream {
 public:
-    ZipIStream(const utility::zip::Reader &reader, std::size_t index)
-        : pf_(reader.plug(index, fis_))
-    {
-        fis_.exceptions(std::ios::badbit | std::ios::failbit);
-    }
+    ZipIStream(const utility::zip::Reader &reader, std::size_t index
+               , const IStream::FilterInit &filterInit)
+        : IStream(filterInit), pf_(reader.plug(index, fis_))
+    {}
 
-    virtual std::istream& get() { return fis_; }
     virtual fs::path path() const { return pf_.path; }
     virtual void close() {}
     virtual boost::optional<std::size_t> size() const {
@@ -56,7 +54,6 @@ public:
     }
 
 private:
-    bio::filtering_istream fis_;
     utility::zip::PluggedFile pf_;
 };
 
@@ -96,7 +93,9 @@ public:
     /** Get (wrapped) input stream for given file.
      *  Throws when not found.
      */
-    virtual IStream::pointer istream(const boost::filesystem::path &path) const
+    virtual IStream::pointer istream(const boost::filesystem::path &path
+                                     , const IStream::FilterInit &filterInit)
+        const
     {
         auto findex(index_.find(path));
         if (findex == index_.end()) {
@@ -105,7 +104,12 @@ public:
                 << path_ << ".";
         }
 
-        return std::make_shared<ZipIStream>(reader_, findex->second);
+        return std::make_shared<ZipIStream>
+            (reader_, findex->second, filterInit);
+    }
+
+    virtual bool exists(const boost::filesystem::path &path) const {
+        return (index_.find(path) != index_.end());
     }
 
 private:

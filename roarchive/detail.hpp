@@ -26,6 +26,8 @@
 #ifndef roarchive_detail_hpp_included_
 #define roarchive_detail_hpp_included_
 
+#include <vector>
+
 #include "./roarchive.hpp"
 
 namespace roarchive {
@@ -39,11 +41,19 @@ public:
 
     virtual ~Detail() {}
 
-    /** Get (wrapped) input stream for given file.
-     *  Throws when not found.
+    // Simple interface
+
+    virtual IStream::pointer
+    istream(const boost::filesystem::path &path
+            , const IStream::FilterInit &filterInit) const = 0;
+
+    IStream::pointer istream(const boost::filesystem::path &path) const {
+        return istream(path, {});
+    }
+
+    /** Checks file existence.
      */
-    virtual IStream::pointer istream(const boost::filesystem::path &path)
-        const = 0;
+    virtual bool exists(const boost::filesystem::path &path) const = 0;
 
     bool directio() const { return directio_; }
 

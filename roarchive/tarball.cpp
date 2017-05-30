@@ -44,16 +44,13 @@ class TarIStream : public IStream {
 public:
     typedef utility::io::SubStreamDevice::Filedes Filedes;
 
-    TarIStream(const fs::path &path, const Filedes &fd)
-        : path_(path), size_(fd.end - fd.start)
-        , buffer_(path, fd), stream_(&buffer_)
+    TarIStream(const fs::path &path, const Filedes &fd
+               , const IStream::FilterInit &filterInit)
+        : IStream(filterInit), path_(path), size_(fd.end - fd.start)
     {
-        stream_.exceptions(std::ios::badbit | std::ios::failbit);
-        buf_.reset(new char[1 << 16]);
-        buffer_.pubsetbuf(buf_.get(), 1 << 16);
+        fis_.push(utility::io::SubStreamDevice(path, fd));
     }
 
-    virtual std::istream& get() { return stream_; }
     virtual fs::path path() const { return path_; }
     virtual void close() {}
     virtual boost::optional<std::size_t> size() const { return size_; }
@@ -61,10 +58,6 @@ public:
 private:
     const fs::path path_;
     const std::size_t size_;
-
-    std::unique_ptr<char[]> buf_;
-    boost::iostreams::stream_buffer<utility::io::SubStreamDevice> buffer_;
-    std::istream stream_;
 };
 
 boost::filesystem::path
@@ -115,6 +108,10 @@ public:
         return findex->second;
     }
 
+    bool exists(const std::string &path) const {
+        return (index_.find(path) != index_.end());
+    }
+
 private:
     const fs::path path_;
     typedef std::map<std::string, Filedes> map;
@@ -131,9 +128,17 @@ public:
     /** Get (wrapped) input stream for given file.
      *  Throws when not found.
      */
-    virtual IStream::pointer istream(const boost::filesystem::path &path) const
+    virtual IStream::pointer istream(const boost::filesystem::path &path
+                                     , const IStream::FilterInit &filterInit)
+        const
     {
-        return std::make_shared<TarIStream>(path, index_.file(path.string()));
+        return std::make_shared<TarIStream>(path, index_.file(path.string())
+                                            , filterInit);
+    }
+
+    virtual bool exists(const boost::filesystem::path &path) const {
+
+        return index_.exists(path.string());
     }
 
 private:
