@@ -23,50 +23,30 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef roarchive_detail_hpp_included_
-#define roarchive_detail_hpp_included_
 
-#include <vector>
+#include <cstdlib>
 
-#include "./roarchive.hpp"
+#include <boost/iostreams/filter/zlib.hpp>
+#include <boost/iostreams/copy.hpp>
 
-namespace roarchive {
+#include "dbglog/dbglog.hpp"
+#include "roarchive/roarchive.hpp"
 
-class RoArchive::Detail {
-public:
-    Detail(const boost::filesystem::path &path
-           , bool directio = false)
-        : path_(path), directio_(directio)
-    {}
+namespace bio = boost::iostreams;
 
-    virtual ~Detail() {}
-
-    // Simple interface
-
-    virtual IStream::pointer
-    istream(const boost::filesystem::path &path
-            , const IStream::FilterInit &filterInit) const = 0;
-
-    IStream::pointer istream(const boost::filesystem::path &path) const {
-        return istream(path, {});
+int main()
+{
+    bio::filtering_istream fis;
+    {
+        bio::zlib_params p;
+        p.window_bits |= 16;
+        fis.push(bio::zlib_decompressor(p));
     }
+    fis.push(std::cin);
+    fis.exceptions(std::ios::badbit | std::ios::failbit);
 
-    /** Checks file existence.
-     */
-    virtual bool exists(const boost::filesystem::path &path) const = 0;
+    bio::copy(fis, std::cout);
+    std::cout.flush();
 
-    /** List all files in the archive.
-     */
-    virtual std::vector<boost::filesystem::path> list() const = 0;
-
-    bool directio() const { return directio_; }
-
-protected:
-    boost::filesystem::path path_;
-    bool directio_;
-};
-
-} // namespace roarchive
-
-#endif // roarchive_detail_hpp_included_
-
+    return EXIT_SUCCESS;
+}

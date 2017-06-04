@@ -23,50 +23,54 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef roarchive_detail_hpp_included_
-#define roarchive_detail_hpp_included_
 
-#include <vector>
+#include <cstdlib>
 
-#include "./roarchive.hpp"
+#include <boost/iostreams/filter/gzip.hpp>
 
-namespace roarchive {
+#include "dbglog/dbglog.hpp"
+#include "roarchive/roarchive.hpp"
 
-class RoArchive::Detail {
-public:
-    Detail(const boost::filesystem::path &path
-           , bool directio = false)
-        : path_(path), directio_(directio)
-    {}
-
-    virtual ~Detail() {}
-
-    // Simple interface
-
-    virtual IStream::pointer
-    istream(const boost::filesystem::path &path
-            , const IStream::FilterInit &filterInit) const = 0;
-
-    IStream::pointer istream(const boost::filesystem::path &path) const {
-        return istream(path, {});
+int main(int argc, char *argv[])
+{
+    if (argc < 2) {
+        LOG(fatal) << "Missing parameters.";
+        return EXIT_FAILURE;
     }
 
-    /** Checks file existence.
-     */
-    virtual bool exists(const boost::filesystem::path &path) const = 0;
+    roarchive::RoArchive archive(argv[1]);
 
-    /** List all files in the archive.
-     */
-    virtual std::vector<boost::filesystem::path> list() const = 0;
+    if (argc < 3) {
+        for (const auto &path : archive.list()) {
+            std::cout << path.string() << "\n";
+        }
+        std::cout.flush();
+        return EXIT_SUCCESS;
+    }
 
-    bool directio() const { return directio_; }
+    // do we have any uncompressor?
 
-protected:
-    boost::filesystem::path path_;
-    bool directio_;
-};
+    roarchive::IStream::FilterInit fi;
+    if (argc > 3) {
+        const std::string operation(argv[3]);
+        if (operation == "gunzip") {
+            fi = [](boost::iostreams::filtering_istream &fis) {
+                fis.push(boost::iostreams::gzip_decompressor());
+            };
+        }
+    }
 
-} // namespace roarchive
+    auto is(archive.istream(argv[2], fi));
+    auto &s(is->get());
+    for (;;) {
+        std::cout.put(s.get());
+    }
+    std::cout.flush();
 
-#endif // roarchive_detail_hpp_included_
-
+#if 0
+    std::cout << is->get().rdbuf();
+    std::cout.flush();
+    LOG(info4) << is->get().rdstate();
+#endif
+    return EXIT_SUCCESS;
+}

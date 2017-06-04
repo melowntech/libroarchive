@@ -45,13 +45,12 @@ public:
     ZipIStream(const utility::zip::Reader &reader, std::size_t index
                , const IStream::FilterInit &filterInit)
         : IStream(filterInit), pf_(reader.plug(index, fis_))
-    {}
+    {
+        update(pf_.uncompressedSize, pf_.seekable);
+    }
 
     virtual fs::path path() const { return pf_.path; }
     virtual void close() {}
-    virtual boost::optional<std::size_t> size() const {
-        return pf_.uncompressedSize;
-    }
 
 private:
     utility::zip::PluggedFile pf_;
@@ -110,6 +109,14 @@ public:
 
     virtual bool exists(const boost::filesystem::path &path) const {
         return (index_.find(path) != index_.end());
+    }
+
+    virtual std::vector<boost::filesystem::path> list() const {
+        std::vector<boost::filesystem::path> list;
+        for (const auto &pair : index_) {
+            list.push_back(pair.first);
+        }
+        return list;
     }
 
 private:

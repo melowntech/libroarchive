@@ -23,50 +23,50 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef roarchive_detail_hpp_included_
-#define roarchive_detail_hpp_included_
 
-#include <vector>
+#include <cstdlib>
 
-#include "./roarchive.hpp"
+#include <boost/iostreams/filter/zlib.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/device/file_descriptor.hpp>
 
-namespace roarchive {
+#include "dbglog/dbglog.hpp"
+#include "roarchive/roarchive.hpp"
 
-class RoArchive::Detail {
-public:
-    Detail(const boost::filesystem::path &path
-           , bool directio = false)
-        : path_(path), directio_(directio)
-    {}
+namespace bio = boost::iostreams;
 
-    virtual ~Detail() {}
-
-    // Simple interface
-
-    virtual IStream::pointer
-    istream(const boost::filesystem::path &path
-            , const IStream::FilterInit &filterInit) const = 0;
-
-    IStream::pointer istream(const boost::filesystem::path &path) const {
-        return istream(path, {});
+int main(int argc, char *argv[])
+{
+    if (argc < 2) {
+        LOG(fatal) << "Missing parameters.";
+        return EXIT_FAILURE;
     }
 
-    /** Checks file existence.
-     */
-    virtual bool exists(const boost::filesystem::path &path) const = 0;
+    roarchive::RoArchive archive(argv[1]);
 
-    /** List all files in the archive.
-     */
-    virtual std::vector<boost::filesystem::path> list() const = 0;
+    if (argc < 3) {
+        for (const auto &path : archive.list()) {
+            std::cout << path.string() << "\n";
+        }
+        std::cout.flush();
+        return EXIT_SUCCESS;
+    }
 
-    bool directio() const { return directio_; }
+    // do we have any uncompressor?
 
-protected:
-    boost::filesystem::path path_;
-    bool directio_;
-};
+    roarchive::IStream::FilterInit fi;
+    if (argc > 3) {
+        const std::string operation(argv[3]);
+        if (operation == "gunzip") {
+            fi = [](bio::filtering_istream &fis) {
+                bio::zlib_params p;
+                p.window_bits += 16;
+                fis.push(bio::zlib_decompressor(p));
+            };
+        }
+    }
 
-} // namespace roarchive
+    bio::copy(archive.istream(argv[2], fi)->get(), std::cout);
 
-#endif // roarchive_detail_hpp_included_
-
+    return EXIT_SUCCESS;
+}

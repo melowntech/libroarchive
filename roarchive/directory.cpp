@@ -89,6 +89,15 @@ public:
         }
         return fs::exists(path_ / path);
     }
+
+    virtual std::vector<boost::filesystem::path> list() const
+    {
+        std::vector<boost::filesystem::path> list;
+        for (fs::recursive_directory_iterator i(path_), e; i != e; ++i) {
+            list.push_back(i->path());
+        }
+        return list;
+    }
 };
 
 } // namespace

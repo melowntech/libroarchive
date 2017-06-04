@@ -23,6 +23,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <boost/iostreams/copy.hpp>
+
 #include "dbglog/dbglog.hpp"
 
 #include "utility/magic.hpp"
@@ -60,6 +63,7 @@ IStream::pointer RoArchive::istream(const boost::filesystem::path &path) const
     auto is(detail_->istream(path));
     // set exceptions
     is->get().exceptions(std::ios::badbit | std::ios::failbit);
+
     return is;
 }
 
@@ -87,16 +91,31 @@ boost::filesystem::path RoArchive::path(const boost::filesystem::path &path)
 std::vector<char> IStream::read()
 {
     auto &s(get());
-    std::vector<char> buf;
-    if (const auto privided = size()) {
-        buf.resize(*privided);
-    } else {
+    if (size_) {
+        // we know the size of the file
+        std::vector<char> buf;
+        buf.resize(*size_);
+        utility::binaryio::read(s, buf.data(), buf.size());
+        return buf;
+    } else if (seekable_) {
+        // we can measure the file
+        std::vector<char> buf;
         buf.resize(s.seekg(0, std::ios_base::end).tellg());
         s.seekg(0);
+        utility::binaryio::read(s, buf.data(), buf.size());
+        return buf;
     }
 
-    utility::binaryio::read(s, buf.data(), buf.size());
-    return buf;
+    // we need to use the old way
+    std::ostringstream os;
+    boost::iostreams::copy(s, os);
+    const auto &str(os.str());
+    return { str.data(), str.data() + str.size() };
+}
+
+std::vector<boost::filesystem::path> RoArchive::list() const
+{
+    return detail_->list();
 }
 
 } // namespace roarchive

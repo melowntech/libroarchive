@@ -46,18 +46,16 @@ public:
 
     TarIStream(const fs::path &path, const Filedes &fd
                , const IStream::FilterInit &filterInit)
-        : IStream(filterInit), path_(path), size_(fd.end - fd.start)
+        : IStream(filterInit, (fd.end - fd.start)), path_(path)
     {
         fis_.push(utility::io::SubStreamDevice(path, fd));
     }
 
     virtual fs::path path() const { return path_; }
     virtual void close() {}
-    virtual boost::optional<std::size_t> size() const { return size_; }
 
 private:
     const fs::path path_;
-    const std::size_t size_;
 };
 
 boost::filesystem::path
@@ -112,6 +110,14 @@ public:
         return (index_.find(path) != index_.end());
     }
 
+    std::vector<boost::filesystem::path> list() const {
+        std::vector<boost::filesystem::path> list;
+        for (const auto &pair : index_) {
+            list.push_back(pair.first);
+        }
+        return list;
+    }
+
 private:
     const fs::path path_;
     typedef std::map<std::string, Filedes> map;
@@ -139,6 +145,10 @@ public:
     virtual bool exists(const boost::filesystem::path &path) const {
 
         return index_.exists(path.string());
+    }
+
+    virtual std::vector<boost::filesystem::path> list() const {
+        return index_.list();
     }
 
 private:
