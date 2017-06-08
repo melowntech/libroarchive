@@ -30,9 +30,12 @@
 
 #include "utility/magic.hpp"
 #include "utility/binaryio.hpp"
+#include "utility/streams.hpp"
 
 #include "./roarchive.hpp"
 #include "./detail.hpp"
+
+namespace bio = boost::iostreams;
 
 namespace roarchive {
 
@@ -108,7 +111,7 @@ std::vector<char> IStream::read()
 
     // we need to use the old way
     std::ostringstream os;
-    boost::iostreams::copy(s, os);
+    bio::copy(s, os);
     const auto &str(os.str());
     return { str.data(), str.data() + str.size() };
 }
@@ -116,6 +119,18 @@ std::vector<char> IStream::read()
 std::vector<boost::filesystem::path> RoArchive::list() const
 {
     return detail_->list();
+}
+
+void copy(const IStream::pointer &in, std::ostream &out)
+{
+    bio::copy(in->get(), out);
+}
+
+void copy(const IStream::pointer &in, const boost::filesystem::path &out)
+{
+    utility::ofstreambuf of(out.string());
+    copy(in, of);
+    of.flush();
 }
 
 } // namespace roarchive

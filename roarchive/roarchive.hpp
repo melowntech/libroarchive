@@ -32,67 +32,10 @@
 
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
+
+#include "./istream.hpp"
 
 namespace roarchive {
-
-/** Input stream.
- */
-class IStream {
-public:
-    typedef std::shared_ptr<IStream> pointer;
-    typedef std::function<void(boost::iostreams::filtering_istream&)
-                          > FilterInit;
-
-    IStream(const IStream::FilterInit &filterInit
-            , const boost::optional<std::size_t> &size = boost::none
-            , bool seekable = true)
-        : stacked_(false), seekable_(seekable)
-    {
-        if (filterInit) { filterInit(fis_); }
-        if (!fis_.size()) {
-            size_ = size;
-        } else {
-            // stacked: we cannot assume anything, stay on the safe side
-            stacked_ = true;
-            seekable_ = false;
-        }
-    }
-
-    virtual ~IStream() {}
-    virtual boost::filesystem::path path() const = 0;
-    virtual std::istream& get() { return fis_; }
-    virtual void close() = 0;
-
-    /** File size, if known.
-     */
-    boost::optional<std::size_t> size() const { return size_; }
-
-    bool seekable() const { return seekable_; }
-
-    operator std::istream&() { return get(); }
-
-    /** Read whole file. File must not be read from before.
-     */
-    std::vector<char> read();
-
-protected:
-    void update(const boost::optional<std::size_t> &size = boost::none
-                , bool seekable = true)
-    {
-        if (!stacked_) {
-            size_ = size;
-            seekable_ = seekable;
-        }
-    }
-
-    boost::iostreams::filtering_istream fis_;
-
-private:
-    bool stacked_;
-    bool seekable_;
-    boost::optional<std::size_t> size_;
-};
 
 /** Generic read-only archive.
  *  One of plain directory, tarball or zip archive.
