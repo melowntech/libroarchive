@@ -129,9 +129,10 @@ std::vector<boost::filesystem::path> RoArchive::list() const
     return detail_->list();
 }
 
-void RoArchive::applyHint(const std::string &hint)
+RoArchive& RoArchive::applyHint(const std::string &hint)
 {
     detail_->applyHint(hint);
+    return *this;
 }
 
 void copy(const IStream::pointer &in, std::ostream &out)

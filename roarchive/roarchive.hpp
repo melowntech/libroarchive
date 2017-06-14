@@ -93,7 +93,7 @@ public:
 
     /** Post-constructor path hint application.
      */
-    void applyHint(const std::string &hint);
+    RoArchive& applyHint(const std::string &hint);
 
     /** Internal implementation.
      */
