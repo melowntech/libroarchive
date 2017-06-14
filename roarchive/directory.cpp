@@ -52,7 +52,7 @@ public:
         fis_.push(stream_);
     }
 
-    virtual boost::filesystem::path path() const { return path_; }
+    virtual fs::path path() const { return path_; }
     virtual void close() { stream_.close(); }
 
 private:
@@ -60,20 +60,40 @@ private:
     utility::ifstreambuf stream_;
 };
 
+fs::path applyHintToPath(const fs::path &path
+                         , const boost::optional<std::string> &hint)
+{
+    if (!hint) { return path; }
+
+    auto hintPath([&]() -> boost::optional<fs::path>
+    {
+        for (fs::recursive_directory_iterator i(path), e; i != e; ++i) {
+            if (i->path().filename() == *hint) { return i->path(); }
+        }
+        return boost::none;
+    }());
+
+    if (!hintPath) {
+        LOGTHROW(err2, std::runtime_error)
+            << "No \"" << *hint << "\" found in the zip archive at "
+            << path << ".";
+    }
+
+    // use hint
+    return hintPath->parent_path();
+}
+
 class Directory : public RoArchive::Detail {
 public:
-    Directory(const boost::filesystem::path &path
-              , const boost::optional<std::string> &hint)
-        : Detail(path, true)
-    {
-        // TODO: check for hint existence
-        (void) hint;
-    }
+    Directory(const fs::path &path, const boost::optional<std::string> &hint)
+        : Detail(applyHintToPath(path, hint), true)
+        , originalPath_(path)
+    {}
 
     /** Get (wrapped) input stream for given file.
      *  Throws when not found.
      */
-    virtual IStream::pointer istream(const boost::filesystem::path &path
+    virtual IStream::pointer istream(const fs::path &path
                                      , const IStream::FilterInit &filterInit)
         const
     {
@@ -83,27 +103,42 @@ public:
         return std::make_shared<FileIStream>(path_ / path, filterInit);
     }
 
-    virtual bool exists(const boost::filesystem::path &path) const {
+    virtual bool exists(const fs::path &path) const {
         if (path.is_absolute()) {
             return fs::exists(path);
         }
         return fs::exists(path_ / path);
     }
 
-    virtual std::vector<boost::filesystem::path> list() const
-    {
-        std::vector<boost::filesystem::path> list;
+    virtual std::vector<fs::path> list() const {
+        std::vector<fs::path> list;
         for (fs::recursive_directory_iterator i(path_), e; i != e; ++i) {
             list.push_back(i->path());
         }
         return list;
     }
+
+    virtual boost::optional<fs::path> findFile(const std::string &filename)
+        const
+    {
+        for (fs::recursive_directory_iterator i(path_), e; i != e; ++i) {
+            if (i->path().filename() == filename) { return i->path(); }
+        }
+        return boost::none;
+    }
+
+    virtual void applyHint(const std::string &hint) {
+        path_ = applyHintToPath(originalPath_, hint);
+    }
+
+private:
+    const fs::path originalPath_;
 };
 
 } // namespace
 
 RoArchive::dpointer
-RoArchive::directory(const boost::filesystem::path &path
+RoArchive::directory(const fs::path &path
                      , const boost::optional<std::string> &hint)
 {
     return std::make_shared<Directory>(path, hint);

@@ -34,6 +34,7 @@
 #include <boost/filesystem/path.hpp>
 
 #include "./istream.hpp"
+#include "./error.hpp"
 
 namespace roarchive {
 
@@ -60,6 +61,11 @@ public:
      */
     bool exists(const boost::filesystem::path &path) const;
 
+    /** Finds first occurence of given filename and returns full path
+     */
+    boost::optional<boost::filesystem::path>
+    findFile(const std::string &filename) const;
+
     /** Get input stream for file at given path.
      */
     IStream::pointer istream(const boost::filesystem::path &path) const;
@@ -84,6 +90,10 @@ public:
     /** List all files in the archive.
      */
     std::vector<boost::filesystem::path> list() const;
+
+    /** Post-constructor path hint application.
+     */
+    void applyHint(const std::string &hint);
 
     /** Internal implementation.
      */

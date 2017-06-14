@@ -80,19 +80,19 @@ public:
 
     TarIndex(utility::tar::Reader &reader
              , const boost::optional<std::string> &hint)
-        : path_(reader.path())
+        : path_(reader.path()), files_(reader.files())
+        , fd_(reader.filedes())
     {
-        const auto files(reader.files());
-        const auto prefix(hint ? findPrefix(path_, *hint, files) : fs::path());
-        const auto fd(reader.filedes());
+        const auto prefix(hint ? findPrefix(path_, *hint, files_)
+                          : fs::path());
 
-        for (const auto &file : files) {
+        for (const auto &file : files_) {
             if (!utility::isPathPrefix(file.path, prefix)) { continue; }
 
             const auto path(utility::cutPathPrefix(file.path, prefix));
             index_.insert(map::value_type
                               (path.string()
-                               , { fd, file.start, file.end() }));
+                               , { fd_, file.start, file.end() }));
         }
     }
 
@@ -118,8 +118,33 @@ public:
         return list;
     }
 
+    boost::optional<fs::path> findFile(const std::string &filename) const {
+        for (const auto &pair : index_) {
+            const fs::path path(pair.first);
+            if (path.filename() == filename) { return path; }
+        }
+        return boost::none;
+    }
+
+    void applyHint(const std::string &hint) {
+        // regenerate
+        const auto prefix(findPrefix(path_, hint, files_));
+        index_.clear();
+
+        for (const auto &file : files_) {
+            if (!utility::isPathPrefix(file.path, prefix)) { continue; }
+
+            const auto path(utility::cutPathPrefix(file.path, prefix));
+            index_.insert(map::value_type
+                              (path.string()
+                               , { fd_, file.start, file.end() }));
+        }
+    }
+
 private:
     const fs::path path_;
+    utility::tar::Reader::File::list files_;
+    int fd_;
     typedef std::map<std::string, Filedes> map;
     map index_;
 };
@@ -149,6 +174,16 @@ public:
 
     virtual std::vector<boost::filesystem::path> list() const {
         return index_.list();
+    }
+
+    virtual boost::optional<fs::path> findFile(const std::string &filename)
+        const
+    {
+        return index_.findFile(filename);
+    }
+
+    virtual void applyHint(const std::string &hint) {
+        index_.applyHint(hint);
     }
 
 private:

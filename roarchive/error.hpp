@@ -23,55 +23,29 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef roarchive_detail_hpp_included_
-#define roarchive_detail_hpp_included_
 
-#include <vector>
+#ifndef roarchive_error_hpp_included_
+#define roarchive_error_hpp_included_
 
-#include "./roarchive.hpp"
+#include <iostream>
+#include <memory>
+#include <functional>
+
+#include <boost/optional.hpp>
+#include <boost/filesystem/path.hpp>
+
+#include "./istream.hpp"
 
 namespace roarchive {
 
-class RoArchive::Detail {
-public:
-    Detail(const boost::filesystem::path &path
-           , bool directio = false)
-        : path_(path), directio_(directio)
-    {}
+struct Error : std::runtime_error {
+    Error(const std::string &msg) : std::runtime_error(msg) {}
+};
 
-    virtual ~Detail() {}
-
-    // Simple interface
-
-    virtual IStream::pointer
-    istream(const boost::filesystem::path &path
-            , const IStream::FilterInit &filterInit) const = 0;
-
-    IStream::pointer istream(const boost::filesystem::path &path) const {
-        return istream(path, {});
-    }
-
-    /** Checks file existence.
-     */
-    virtual bool exists(const boost::filesystem::path &path) const = 0;
-
-    virtual boost::optional<boost::filesystem::path>
-    findFile(const std::string &filename) const = 0;
-
-    /** List all files in the archive.
-     */
-    virtual std::vector<boost::filesystem::path> list() const = 0;
-
-    virtual void applyHint(const std::string &hint) = 0;
-
-    bool directio() const { return directio_; }
-
-protected:
-    boost::filesystem::path path_;
-    bool directio_;
+struct NotAnArchive : Error {
+    NotAnArchive(const std::string &msg) : Error(msg) {}
 };
 
 } // namespace roarchive
 
-#endif // roarchive_detail_hpp_included_
-
+#endif // roarchive_error_hpp_included_

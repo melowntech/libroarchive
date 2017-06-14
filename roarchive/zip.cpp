@@ -119,9 +119,31 @@ public:
         return list;
     }
 
+    virtual boost::optional<fs::path> findFile(const std::string &filename)
+        const
+    {
+        for (const auto &pair : index_) {
+            if (pair.first.filename() == filename) { return pair.first; }
+        }
+        return boost::none;
+    }
+
+    virtual void applyHint(const std::string &hint) {
+        // regenerate
+        prefix_ = findPrefix(path_, hint, reader_.files());
+        index_.clear();
+
+        for (const auto &file : reader_.files()) {
+            if (!utility::isPathPrefix(file.path, prefix_)) { continue; }
+
+            const auto path(utility::cutPathPrefix(file.path, prefix_));
+            index_.insert(map::value_type(path, file.index));
+        }
+    }
+
 private:
     utility::zip::Reader reader_;
-    const fs::path prefix_;
+    fs::path prefix_;
     typedef std::map<fs::path, std::size_t> map;
     map index_;
 };

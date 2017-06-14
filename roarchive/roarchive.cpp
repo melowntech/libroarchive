@@ -34,7 +34,9 @@
 
 #include "./roarchive.hpp"
 #include "./detail.hpp"
+#include "./error.hpp"
 
+namespace fs = boost::filesystem;
 namespace bio = boost::iostreams;
 
 namespace roarchive {
@@ -51,7 +53,7 @@ RoArchive::factory(const boost::filesystem::path &path
 
     if (magic == "application/zip") { return zip(path, hint); }
 
-    LOGTHROW(err2, std::runtime_error)
+    LOGTHROW(err2, NotAnArchive)
         << "Unsupported archive type <" << magic << ">.";
     return {};
 }
@@ -83,6 +85,12 @@ IStream::pointer RoArchive::istream(const boost::filesystem::path &path
 bool RoArchive::exists(const boost::filesystem::path &path) const
 {
     return detail_->exists(path);
+}
+
+boost::optional<fs::path> RoArchive::findFile(const std::string &filename)
+    const
+{
+    return detail_->findFile(filename);
 }
 
 boost::filesystem::path RoArchive::path(const boost::filesystem::path &path)
@@ -119,6 +127,11 @@ std::vector<char> IStream::read()
 std::vector<boost::filesystem::path> RoArchive::list() const
 {
     return detail_->list();
+}
+
+void RoArchive::applyHint(const std::string &hint)
+{
+    detail_->applyHint(hint);
 }
 
 void copy(const IStream::pointer &in, std::ostream &out)
