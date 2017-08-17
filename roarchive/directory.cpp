@@ -25,14 +25,14 @@
  */
 
 #include <boost/filesystem.hpp>
+#include <boost/iostreams/device/file.hpp>
 
 #include "dbglog/dbglog.hpp"
-
-#include "utility/streams.hpp"
 
 #include "./detail.hpp"
 
 namespace fs = boost::filesystem;
+namespace bio = boost::iostreams;
 
 namespace roarchive {
 
@@ -44,20 +44,18 @@ public:
         : IStream(filterInit), path_(path)
     {
         try {
-            stream_.open(path.string());
+            fis_.push(bio::file_source(path.string()));
         } catch (const std::ios_base::failure &e) {
             LOGTHROW(err2, std::runtime_error)
                 << "Cannot open file file " << path << ": " << e.what() << ".";
         }
-        fis_.push(stream_);
     }
 
     virtual fs::path path() const { return path_; }
-    virtual void close() { stream_.close(); }
+    virtual void close() {}
 
 private:
     const fs::path path_;
-    utility::ifstreambuf stream_;
 };
 
 fs::path applyHintToPath(const fs::path &path
