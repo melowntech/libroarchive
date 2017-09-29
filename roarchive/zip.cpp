@@ -77,8 +77,9 @@ findPrefix(const fs::path &path, const boost::optional<std::string> &hint
 class Zip : public RoArchive::Detail {
 public:
     Zip(const boost::filesystem::path &path
+        , std::size_t limit
         , const boost::optional<std::string> &hint)
-        : Detail(path), reader_(path)
+        : Detail(path), reader_(path, limit)
         , prefix_(findPrefix(path, hint, reader_.files()))
     {
         for (const auto &file : reader_.files()) {
@@ -151,9 +152,10 @@ private:
 } // namespace
 
 RoArchive::dpointer RoArchive::zip(const boost::filesystem::path &path
+                                   , std::size_t limit
                                    , const boost::optional<std::string> &hint)
 {
-    return std::make_shared<Zip>(path, hint);
+    return std::make_shared<Zip>(path, limit, hint);
 }
 
 } // namespace roarchive

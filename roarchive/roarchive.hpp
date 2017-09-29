@@ -57,6 +57,22 @@ public:
     RoArchive(const boost::filesystem::path &path
               , const boost::optional<std::string> &hint = boost::none);
 
+    /** Opens read-only archive at given path.
+     *
+     * File limit limits number of files * read from file list. This can be used
+     * to analyze content of the archive when access bandwidth is scarce
+     * (i.e. over network).
+     *
+     * Hint is name of filename known to the user. All access is adjusted to
+     * subtree where known file is in the root of such subtree.
+     *
+     * Some implementations (tarball, zip find hint inside the archive. Others
+     * check whether hint is under given path (plain directory).
+     */
+    RoArchive(const boost::filesystem::path &path
+              , std::size_t fileLimit
+              , const boost::optional<std::string> &hint = boost::none);
+
     /** Checks file existence.
      */
     bool exists(const boost::filesystem::path &path) const;
@@ -116,13 +132,17 @@ private:
     bool directio_;
 
     static dpointer directory(const boost::filesystem::path &path
+                              , std::size_t limit
                               , const boost::optional<std::string> &hint);
     static dpointer tarball(const boost::filesystem::path &path
+                            , std::size_t limit
                             , const boost::optional<std::string> &hint);
     static dpointer zip(const boost::filesystem::path &path
+                        , std::size_t limit
                         , const boost::optional<std::string> &hint);
 
     static dpointer factory(const boost::filesystem::path &path
+                            , std::size_t limit
                             , const boost::optional<std::string> &hint);
 };
 

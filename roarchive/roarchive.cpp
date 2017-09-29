@@ -24,6 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <limits>
+
 #include <boost/iostreams/copy.hpp>
 
 #include "dbglog/dbglog.hpp"
@@ -41,17 +43,22 @@ namespace bio = boost::iostreams;
 
 namespace roarchive {
 
+namespace {
+const auto NoLimit(std::numeric_limits<std::size_t>::max());
+} // namespace
+
 RoArchive::dpointer
 RoArchive::factory(const boost::filesystem::path &path
+                   , std::size_t limit
                    , const boost::optional<std::string> &hint)
 {
     const auto magic(utility::Magic().mime(path));
 
-    if (magic == "inode/directory") { return directory(path, hint); }
+    if (magic == "inode/directory") { return directory(path, limit, hint); }
 
-    if (magic == "application/x-tar") { return tarball(path, hint); }
+    if (magic == "application/x-tar") { return tarball(path, limit, hint); }
 
-    if (magic == "application/zip") { return zip(path, hint); }
+    if (magic == "application/zip") { return zip(path, limit, hint); }
 
     LOGTHROW(err2, NotAnArchive)
         << "Unsupported archive type <" << magic << ">.";
@@ -60,7 +67,15 @@ RoArchive::factory(const boost::filesystem::path &path
 
 RoArchive::RoArchive(const boost::filesystem::path &path
                      , const boost::optional<std::string> &hint)
-    : path_(path), detail_(factory(path, hint)), directio_(detail_->directio())
+    : path_(path), detail_(factory(path, NoLimit, hint))
+    , directio_(detail_->directio())
+{}
+
+RoArchive::RoArchive(const boost::filesystem::path &path
+                     , std::size_t limit
+                     , const boost::optional<std::string> &hint)
+    : path_(path), detail_(factory(path, limit, hint))
+    , directio_(detail_->directio())
 {}
 
 IStream::pointer RoArchive::istream(const boost::filesystem::path &path) const

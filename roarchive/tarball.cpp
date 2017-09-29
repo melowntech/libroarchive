@@ -79,8 +79,9 @@ public:
     typedef utility::io::SubStreamDevice::Filedes Filedes;
 
     TarIndex(utility::tar::Reader &reader
+             , std::size_t limit
              , const boost::optional<std::string> &hint)
-        : path_(reader.path()), files_(reader.files())
+        : path_(reader.path()), files_(reader.files(limit))
         , fd_(reader.filedes())
     {
         const auto prefix(hint ? findPrefix(path_, *hint, files_)
@@ -152,8 +153,9 @@ private:
 class Tarball : public RoArchive::Detail {
 public:
     Tarball(const boost::filesystem::path &path
+            , std::size_t limit
             , const boost::optional<std::string> &hint)
-        : Detail(path), reader_(path), index_(reader_, hint)
+        : Detail(path), reader_(path), index_(reader_, limit, hint)
     {}
 
     /** Get (wrapped) input stream for given file.
@@ -195,9 +197,10 @@ private:
 
 RoArchive::dpointer
 RoArchive::tarball(const boost::filesystem::path &path
+                   , std::size_t limit
                    , const boost::optional<std::string> &hint)
 {
-    return std::make_shared<Tarball>(path, hint);
+    return std::make_shared<Tarball>(path, limit, hint);
 }
 
 } // namespace roarchive

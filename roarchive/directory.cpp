@@ -136,9 +136,10 @@ private:
 } // namespace
 
 RoArchive::dpointer
-RoArchive::directory(const fs::path &path
+RoArchive::directory(const fs::path &path, std::size_t
                      , const boost::optional<std::string> &hint)
 {
+    // do not apply any limit
     return std::make_shared<Directory>(path, hint);
 }
 
