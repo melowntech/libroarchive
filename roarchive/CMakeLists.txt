@@ -1,9 +1,9 @@
 
 # bump version here
-set(roarchive_VERSION 1.3)
+set(roarchive_VERSION 1.4)
 
 define_module(LIBRARY roarchive=${roarchive_VERSION}
-  DEPENDS utility>=1.15
+  DEPENDS utility>=1.20
   Boost_FILESYSTEM Boost_IOSTREAMS
   MAGIC
   )
