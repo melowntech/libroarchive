@@ -29,7 +29,10 @@
 
 #include "dbglog/dbglog.hpp"
 
+#include "utility/path.hpp"
+
 #include "./detail.hpp"
+#include "./io.hpp"
 
 namespace fs = boost::filesystem;
 namespace bio = boost::iostreams;
@@ -44,9 +47,15 @@ public:
         : IStream(filterInit), path_(path)
     {
         try {
-            fis_.push(bio::file_source(path.string()));
+            auto source(bio::file_source(path.string()));
+            if (!source.is_open()) {
+            LOGTHROW(err2, Error)
+                << "Cannot open file file " << path << ".";
+            }
+
+            fis_.push(std::move(source));
         } catch (const std::ios_base::failure &e) {
-            LOGTHROW(err2, std::runtime_error)
+            LOGTHROW(err2, Error)
                 << "Cannot open file file " << path << ": " << e.what() << ".";
         }
     }
@@ -58,32 +67,37 @@ private:
     const fs::path path_;
 };
 
-fs::path applyHintToPath(const fs::path &path
-                         , const boost::optional<std::string> &hint)
+fs::path applyHintToPath(const fs::path &path, const FileHint &hint)
 {
     if (!hint) { return path; }
 
     auto hintPath([&]() -> boost::optional<fs::path>
     {
+        FileHint::Matcher matcher(hint);
         for (fs::recursive_directory_iterator i(path), e; i != e; ++i) {
-            if (i->path().filename() == *hint) { return i->path(); }
+            if (matcher(i->path())) {
+                return i->path().parent_path();
+            }
         }
+
+        if (matcher) { return matcher.match().parent_path(); }
+
         return boost::none;
     }());
 
     if (!hintPath) {
         LOGTHROW(err2, std::runtime_error)
-            << "No \"" << *hint << "\" found in the zip archive at "
+            << "No \"" << hint << "\" found in the zip archive at "
             << path << ".";
     }
 
     // use hint
-    return hintPath->parent_path();
+    return *hintPath;
 }
 
 class Directory : public RoArchive::Detail {
 public:
-    Directory(const fs::path &path, const boost::optional<std::string> &hint)
+    Directory(const fs::path &path, const FileHint &hint)
         : Detail(applyHintToPath(path, hint), true)
         , originalPath_(path)
     {}
@@ -108,10 +122,10 @@ public:
         return fs::exists(path_ / path);
     }
 
-    virtual std::vector<fs::path> list() const {
-        std::vector<fs::path> list;
+    virtual Files list() const {
+        Files list;
         for (fs::recursive_directory_iterator i(path_), e; i != e; ++i) {
-            list.push_back(i->path());
+            list.push_back(utility::cutPathPrefix(i->path(), path_));
         }
         return list;
     }
@@ -125,7 +139,7 @@ public:
         return boost::none;
     }
 
-    virtual void applyHint(const std::string &hint) {
+    virtual void applyHint(const FileHint &hint) {
         path_ = applyHintToPath(originalPath_, hint);
     }
 
@@ -136,8 +150,7 @@ private:
 } // namespace
 
 RoArchive::dpointer
-RoArchive::directory(const fs::path &path, std::size_t
-                     , const boost::optional<std::string> &hint)
+RoArchive::directory(const fs::path &path, std::size_t, const FileHint &hint)
 {
     // do not apply any limit
     return std::make_shared<Directory>(path, hint);

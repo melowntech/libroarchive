@@ -59,33 +59,38 @@ private:
 };
 
 boost::filesystem::path
-findPrefix(const fs::path &path, const std::string &hint
+findPrefix(const fs::path &path, const FileHint &hint
            , const utility::tar::Reader::File::list &files)
 {
+    if (!hint) { return {}; }
+
+    // match all files
+    FileHint::Matcher matcher(hint);
     for (const auto &file : files) {
-        if (file.path.filename() == hint) {
+        if (matcher(file.path)) {
             return file.path.parent_path();
         }
     }
 
-    LOGTHROW(err2, std::runtime_error)
-        << "No \"" << hint << "\" found in the tarball archive at "
-        << path << ".";
-    throw;
+    if (!matcher) {
+        LOGTHROW(err2, std::runtime_error)
+            << "No \"" << hint << "\" found in the tarball archive at "
+            << path << ".";
+    }
+
+    return matcher.match().parent_path();
 }
 
 class TarIndex {
 public:
     typedef utility::io::SubStreamDevice::Filedes Filedes;
 
-    TarIndex(utility::tar::Reader &reader
-             , std::size_t limit
-             , const boost::optional<std::string> &hint)
+    TarIndex(utility::tar::Reader &reader, std::size_t limit
+             , const FileHint &hint)
         : path_(reader.path()), files_(reader.files(limit))
         , fd_(reader.filedes())
     {
-        const auto prefix(hint ? findPrefix(path_, *hint, files_)
-                          : fs::path());
+        const auto prefix(findPrefix(path_, hint, files_));
 
         for (const auto &file : files_) {
             if (!utility::isPathPrefix(file.path, prefix)) { continue; }
@@ -100,7 +105,7 @@ public:
     const Filedes& file(const std::string &path) const {
         auto findex(index_.find(path));
         if (findex == index_.end()) {
-            LOGTHROW(err2, std::runtime_error)
+            LOGTHROW(err2, Error)
                 << "File \"" << path << "\" not found in the archive at "
                 << path_ << ".";
         }
@@ -111,7 +116,7 @@ public:
         return (index_.find(path) != index_.end());
     }
 
-    std::vector<boost::filesystem::path> list() const {
+    Files list() const {
         std::vector<boost::filesystem::path> list;
         for (const auto &pair : index_) {
             list.push_back(pair.first);
@@ -127,7 +132,8 @@ public:
         return boost::none;
     }
 
-    void applyHint(const std::string &hint) {
+    void applyHint(const FileHint &hint) {
+        if (!hint) { return; }
         // regenerate
         const auto prefix(findPrefix(path_, hint, files_));
         index_.clear();
@@ -152,9 +158,8 @@ private:
 
 class Tarball : public RoArchive::Detail {
 public:
-    Tarball(const boost::filesystem::path &path
-            , std::size_t limit
-            , const boost::optional<std::string> &hint)
+    Tarball(const boost::filesystem::path &path, std::size_t limit
+            , const FileHint &hint)
         : Detail(path), reader_(path), index_(reader_, limit, hint)
     {}
 
@@ -174,7 +179,7 @@ public:
         return index_.exists(path.string());
     }
 
-    virtual std::vector<boost::filesystem::path> list() const {
+    virtual Files list() const {
         return index_.list();
     }
 
@@ -184,7 +189,7 @@ public:
         return index_.findFile(filename);
     }
 
-    virtual void applyHint(const std::string &hint) {
+    virtual void applyHint(const FileHint &hint) {
         index_.applyHint(hint);
     }
 
@@ -196,9 +201,8 @@ private:
 } // namespace
 
 RoArchive::dpointer
-RoArchive::tarball(const boost::filesystem::path &path
-                   , std::size_t limit
-                   , const boost::optional<std::string> &hint)
+RoArchive::tarball(const boost::filesystem::path &path, std::size_t limit
+                   , const FileHint &hint)
 {
     return std::make_shared<Tarball>(path, limit, hint);
 }

@@ -57,28 +57,32 @@ private:
 };
 
 boost::filesystem::path
-findPrefix(const fs::path &path, const boost::optional<std::string> &hint
+findPrefix(const fs::path &path, const FileHint &hint
            , const utility::zip::Reader::Record::list &files)
 {
     if (!hint) { return {}; }
 
+    // match all files
+    FileHint::Matcher matcher(hint);
     for (const auto &file : files) {
-        if (file.path.filename() == *hint) {
+        if (matcher(file.path)) {
             return file.path.parent_path();
         }
     }
 
-    LOGTHROW(err2, std::runtime_error)
-        << "No \"" << *hint << "\" found in the zip archive at "
-        << path << ".";
-    throw;
+    if (!matcher) {
+        LOGTHROW(err2, std::runtime_error)
+            << "No \"" << hint << "\" found in the zip archive at "
+            << path << ".";
+    }
+
+    return matcher.match().parent_path();
 }
 
 class Zip : public RoArchive::Detail {
 public:
-    Zip(const boost::filesystem::path &path
-        , std::size_t limit
-        , const boost::optional<std::string> &hint)
+    Zip(const boost::filesystem::path &path, std::size_t limit
+        , const FileHint &hint)
         : Detail(path), reader_(path, limit)
         , prefix_(findPrefix(path, hint, reader_.files()))
     {
@@ -99,7 +103,7 @@ public:
     {
         auto findex(index_.find(path));
         if (findex == index_.end()) {
-            LOGTHROW(err2, std::runtime_error)
+            LOGTHROW(err2, Error)
                 << "File " << path << " not found in the zip archive at "
                 << path_ << ".";
         }
@@ -112,8 +116,8 @@ public:
         return (index_.find(path) != index_.end());
     }
 
-    virtual std::vector<boost::filesystem::path> list() const {
-        std::vector<boost::filesystem::path> list;
+    virtual Files list() const {
+        Files list;
         for (const auto &pair : index_) {
             list.push_back(pair.first);
         }
@@ -129,7 +133,9 @@ public:
         return boost::none;
     }
 
-    virtual void applyHint(const std::string &hint) {
+    virtual void applyHint(const FileHint &hint) {
+        if (!hint) { return; }
+
         // regenerate
         prefix_ = findPrefix(path_, hint, reader_.files());
         index_.clear();
@@ -153,7 +159,7 @@ private:
 
 RoArchive::dpointer RoArchive::zip(const boost::filesystem::path &path
                                    , std::size_t limit
-                                   , const boost::optional<std::string> &hint)
+                                   , const FileHint &hint)
 {
     return std::make_shared<Zip>(path, limit, hint);
 }

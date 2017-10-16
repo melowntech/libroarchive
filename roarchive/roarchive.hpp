@@ -29,6 +29,7 @@
 #include <iostream>
 #include <memory>
 #include <functional>
+#include <initializer_list>
 
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
@@ -37,6 +38,34 @@
 #include "./error.hpp"
 
 namespace roarchive {
+
+/** File hint. File that tells where actual root data directory starts.
+ *  This is used for two things:
+ *
+ * * Solve problem with data being either directly at top level or in some
+ *   unknown subridrectory.
+ *
+ * * Distinguish different file formats: therefore hint is an array not a
+ *   scalar.
+ *
+ */
+struct FileHint {
+    FileHint() {}
+    FileHint(std::string hint) : hint{ std::move(hint) } {}
+    FileHint(std::vector<std::string> hint) : hint(std::move(hint)) {}
+
+    template <typename T>
+    FileHint(std::initializer_list<T> list)
+        : hint(std::begin(list), std::end(list)) {}
+
+    operator bool() const { return !hint.empty(); }
+
+    std::vector<std::string> hint;
+
+    class Matcher;
+};
+
+typedef std::vector<boost::filesystem::path> Files;
 
 /** Generic read-only archive.
  *  One of plain directory, tarball or zip archive.
@@ -55,7 +84,7 @@ public:
      * check whether hint is under given path (plain directory).
      */
     RoArchive(const boost::filesystem::path &path
-              , const boost::optional<std::string> &hint = boost::none);
+              , const FileHint &hint = FileHint());
 
     /** Opens read-only archive at given path.
      *
@@ -71,7 +100,7 @@ public:
      */
     RoArchive(const boost::filesystem::path &path
               , std::size_t fileLimit
-              , const boost::optional<std::string> &hint = boost::none);
+              , const FileHint &hint = FileHint());
 
     /** Checks file existence.
      */
@@ -105,11 +134,11 @@ public:
 
     /** List all files in the archive.
      */
-    std::vector<boost::filesystem::path> list() const;
+    Files list() const;
 
     /** Post-constructor path hint application.
      */
-    RoArchive& applyHint(const std::string &hint);
+    RoArchive& applyHint(const FileHint &hint = FileHint());
 
     /** Internal implementation.
      */
@@ -132,18 +161,31 @@ private:
     bool directio_;
 
     static dpointer directory(const boost::filesystem::path &path
-                              , std::size_t limit
-                              , const boost::optional<std::string> &hint);
+                              , std::size_t limit, const FileHint &hint);
     static dpointer tarball(const boost::filesystem::path &path
-                            , std::size_t limit
-                            , const boost::optional<std::string> &hint);
+                            , std::size_t limit, const FileHint &hint);
     static dpointer zip(const boost::filesystem::path &path
-                        , std::size_t limit
-                        , const boost::optional<std::string> &hint);
+                        , std::size_t limit, const FileHint &hint);
 
     static dpointer factory(const boost::filesystem::path &path
-                            , std::size_t limit
-                            , const boost::optional<std::string> &hint);
+                            , std::size_t limit, const FileHint &hint);
+};
+
+class FileHint::Matcher {
+public:
+    Matcher(const FileHint &hint)
+        : hint_(hint.hint), bestIndex_(hint_.size())
+    {}
+
+    bool operator()(const boost::filesystem::path &path);
+    operator bool() const { return bestIndex_ < hint_.size(); }
+    bool operator!() const { return bestIndex_ == hint_.size(); }
+    const boost::filesystem::path& match() const { return bestMatch_; }
+
+private:
+    const std::vector<std::string> hint_;
+    std::size_t bestIndex_;
+    boost::filesystem::path bestMatch_;
 };
 
 } // namespace roarchive

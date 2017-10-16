@@ -23,55 +23,28 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef roarchive_detail_hpp_included_
-#define roarchive_detail_hpp_included_
+
+#ifndef roarchive_io_hpp_included_
+#define roarchive_io_hpp_included_
 
 #include <vector>
+
+#include "utility/streams.hpp"
 
 #include "./roarchive.hpp"
 
 namespace roarchive {
 
-class RoArchive::Detail {
-public:
-    Detail(const boost::filesystem::path &path
-           , bool directio = false)
-        : path_(path), directio_(directio)
-    {}
+template<typename CharT, typename Traits>
+inline std::basic_ostream<CharT, Traits>&
+operator<<(std::basic_ostream<CharT, Traits> &os, const FileHint &hint)
+{
+    return os << '{' << utility::join(hint.hint, ",", "no hint")
+              << '}';
+}
 
-    virtual ~Detail() {}
-
-    // Simple interface
-
-    virtual IStream::pointer
-    istream(const boost::filesystem::path &path
-            , const IStream::FilterInit &filterInit) const = 0;
-
-    IStream::pointer istream(const boost::filesystem::path &path) const {
-        return istream(path, {});
-    }
-
-    /** Checks file existence.
-     */
-    virtual bool exists(const boost::filesystem::path &path) const = 0;
-
-    virtual boost::optional<boost::filesystem::path>
-    findFile(const std::string &filename) const = 0;
-
-    /** List all files in the archive.
-     */
-    virtual std::vector<boost::filesystem::path> list() const = 0;
-
-    virtual void applyHint(const FileHint &hint) = 0;
-
-    bool directio() const { return directio_; }
-
-protected:
-    boost::filesystem::path path_;
-    bool directio_;
-};
 
 } // namespace roarchive
 
-#endif // roarchive_detail_hpp_included_
+#endif // roarchive_io_hpp_included_
 

@@ -48,9 +48,8 @@ const auto NoLimit(std::numeric_limits<std::size_t>::max());
 } // namespace
 
 RoArchive::dpointer
-RoArchive::factory(const boost::filesystem::path &path
-                   , std::size_t limit
-                   , const boost::optional<std::string> &hint)
+RoArchive::factory(const boost::filesystem::path &path, std::size_t limit
+                   , const FileHint &hint)
 {
     const auto magic(utility::Magic().mime(path));
 
@@ -65,15 +64,13 @@ RoArchive::factory(const boost::filesystem::path &path
     return {};
 }
 
-RoArchive::RoArchive(const boost::filesystem::path &path
-                     , const boost::optional<std::string> &hint)
+RoArchive::RoArchive(const boost::filesystem::path &path, const FileHint &hint)
     : path_(path), detail_(factory(path, NoLimit, hint))
     , directio_(detail_->directio())
 {}
 
-RoArchive::RoArchive(const boost::filesystem::path &path
-                     , std::size_t limit
-                     , const boost::optional<std::string> &hint)
+RoArchive::RoArchive(const boost::filesystem::path &path, std::size_t limit
+                     , const FileHint &hint)
     : path_(path), detail_(factory(path, limit, hint))
     , directio_(detail_->directio())
 {}
@@ -139,12 +136,12 @@ std::vector<char> IStream::read()
     return { str.data(), str.data() + str.size() };
 }
 
-std::vector<boost::filesystem::path> RoArchive::list() const
+Files RoArchive::list() const
 {
     return detail_->list();
 }
 
-RoArchive& RoArchive::applyHint(const std::string &hint)
+RoArchive& RoArchive::applyHint(const FileHint &hint)
 {
     detail_->applyHint(hint);
     return *this;
@@ -160,6 +157,22 @@ void copy(const IStream::pointer &in, const boost::filesystem::path &out)
     utility::ofstreambuf of(out.string());
     copy(in, of);
     of.flush();
+}
+
+bool FileHint::Matcher::operator()(const boost::filesystem::path &path)
+{
+    const auto &fname(path.filename());
+
+    for (std::size_t index(0); index < bestIndex_; ++index) {
+        if (fname == hint_[index]) {
+            bestIndex_ = index;
+            bestMatch_ = path;
+            break;
+        }
+    }
+
+    // we are done when first index is matched
+    return !bestIndex_;
 }
 
 } // namespace roarchive
