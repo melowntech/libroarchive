@@ -23,3 +23,7 @@ target_link_libraries(roarchive ${MODULE_LIBRARIES})
 buildsys_target_compile_definitions(roarchive ${MODULE_DEFINITIONS})
 
 add_subdirectory(test-roarchive EXCLUDE_FROM_ALL)
+
+if(MODULE_service_FOUND)
+  add_subdirectory(tools EXCLUDE_FROM_ALL)
+endif()
