@@ -71,7 +71,23 @@ protected:
     bool directio_;
 };
 
+class FileHint::Matcher {
+public:
+    Matcher(const FileHint &hint)
+        : hint_(hint.hint), bestIndex_(hint_.size())
+    {}
+
+    bool operator()(const boost::filesystem::path &path);
+    operator bool() const { return bestIndex_ < hint_.size(); }
+    bool operator!() const { return bestIndex_ == hint_.size(); }
+    const boost::filesystem::path& match() const { return bestMatch_; }
+
+private:
+    const std::vector<std::string> hint_;
+    std::size_t bestIndex_;
+    boost::filesystem::path bestMatch_;
+};
+
 } // namespace roarchive
 
 #endif // roarchive_detail_hpp_included_
-

@@ -82,9 +82,12 @@ public:
      *
      * Some implementations (tarball, zip find hint inside the archive. Others
      * check whether hint is under given path (plain directory).
+     *
+     * Optional MIME type is used to detect file's format faster if known ahead.
      */
     RoArchive(const boost::filesystem::path &path
-              , const FileHint &hint = FileHint());
+              , const FileHint &hint = FileHint()
+              , const std::string &mime = "");
 
     /** Opens read-only archive at given path.
      *
@@ -97,10 +100,13 @@ public:
      *
      * Some implementations (tarball, zip find hint inside the archive. Others
      * check whether hint is under given path (plain directory).
+     *
+     * Optional MIME type is used to detect file's format faster if known ahead.
      */
     RoArchive(const boost::filesystem::path &path
               , std::size_t fileLimit
-              , const FileHint &hint = FileHint());
+              , const FileHint &hint = FileHint()
+              , const std::string &mime = "");
 
     /** Checks file existence.
      */
@@ -168,24 +174,8 @@ private:
                         , std::size_t limit, const FileHint &hint);
 
     static dpointer factory(const boost::filesystem::path &path
-                            , std::size_t limit, const FileHint &hint);
-};
-
-class FileHint::Matcher {
-public:
-    Matcher(const FileHint &hint)
-        : hint_(hint.hint), bestIndex_(hint_.size())
-    {}
-
-    bool operator()(const boost::filesystem::path &path);
-    operator bool() const { return bestIndex_ < hint_.size(); }
-    bool operator!() const { return bestIndex_ == hint_.size(); }
-    const boost::filesystem::path& match() const { return bestMatch_; }
-
-private:
-    const std::vector<std::string> hint_;
-    std::size_t bestIndex_;
-    boost::filesystem::path bestMatch_;
+                            , std::size_t limit, const FileHint &hint
+                            , std::string mime);
 };
 
 } // namespace roarchive
