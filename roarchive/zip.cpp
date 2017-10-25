@@ -90,7 +90,7 @@ public:
             if (!utility::isPathPrefix(file.path, prefix_)) { continue; }
 
             const auto path(utility::cutPathPrefix(file.path, prefix_));
-            index_.insert(map::value_type(path, file.index));
+            index_.insert(map::value_type(path.string(), file));
         }
     }
 
@@ -101,7 +101,7 @@ public:
                                      , const IStream::FilterInit &filterInit)
         const
     {
-        auto findex(index_.find(path));
+        auto findex(index_.find(path.string()));
         if (findex == index_.end()) {
             LOGTHROW(err2, Error)
                 << "File " << path << " not found in the zip archive at "
@@ -109,11 +109,11 @@ public:
         }
 
         return std::make_shared<ZipIStream>
-            (reader_, findex->second, filterInit);
+            (reader_, findex->second.index, filterInit);
     }
 
     virtual bool exists(const boost::filesystem::path &path) const {
-        return (index_.find(path) != index_.end());
+        return (index_.find(path.string()) != index_.end());
     }
 
     virtual Files list() const {
@@ -128,7 +128,9 @@ public:
         const
     {
         for (const auto &pair : index_) {
-            if (pair.first.filename() == filename) { return pair.first; }
+            if (pair.second.path.filename() == filename) {
+                return fs::path(pair.first);
+            }
         }
         return boost::none;
     }
@@ -144,14 +146,15 @@ public:
             if (!utility::isPathPrefix(file.path, prefix_)) { continue; }
 
             const auto path(utility::cutPathPrefix(file.path, prefix_));
-            index_.insert(map::value_type(path, file.index));
+            index_.insert(map::value_type(path.string(), file));
         }
     }
 
 private:
     utility::zip::Reader reader_;
     fs::path prefix_;
-    typedef std::map<fs::path, std::size_t> map;
+
+    typedef std::map<std::string, utility::zip::Reader::Record> map;
     map index_;
 };
 
