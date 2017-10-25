@@ -1,6 +1,6 @@
 
 # bump version here
-set(roarchive_VERSION 1.4)
+set(roarchive_VERSION 1.5)
 
 define_module(LIBRARY roarchive=${roarchive_VERSION}
   DEPENDS utility>=1.20
