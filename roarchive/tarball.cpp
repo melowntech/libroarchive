@@ -33,6 +33,7 @@
 #include "utility/streams.hpp"
 
 #include "./detail.hpp"
+#include "./io.hpp"
 
 namespace fs = boost::filesystem;
 
@@ -85,12 +86,11 @@ class TarIndex {
 public:
     typedef utility::io::SubStreamDevice::Filedes Filedes;
 
-    TarIndex(utility::tar::Reader &reader, std::size_t limit
-             , const FileHint &hint)
-        : path_(reader.path()), files_(reader.files(limit))
+    TarIndex(utility::tar::Reader &reader, const OpenOptions &openOptions)
+        : path_(reader.path()), files_(reader.files(openOptions.fileLimit))
         , fd_(reader.filedes())
     {
-        const auto prefix(findPrefix(path_, hint, files_));
+        const auto prefix(findPrefix(path_, openOptions.hint, files_));
 
         for (const auto &file : files_) {
             if (!utility::isPathPrefix(file.path, prefix)) { continue; }
@@ -105,7 +105,7 @@ public:
     const Filedes& file(const std::string &path) const {
         auto findex(index_.find(path));
         if (findex == index_.end()) {
-            LOGTHROW(err2, Error)
+            LOGTHROW(err2, NoSuchFile)
                 << "File \"" << path << "\" not found in the archive at "
                 << path_ << ".";
         }
@@ -158,9 +158,9 @@ private:
 
 class Tarball : public RoArchive::Detail {
 public:
-    Tarball(const boost::filesystem::path &path, std::size_t limit
-            , const FileHint &hint)
-        : Detail(path), reader_(path), index_(reader_, limit, hint)
+    Tarball(const boost::filesystem::path &path
+            , const OpenOptions &openOptions)
+        : Detail(path), reader_(path), index_(reader_, openOptions)
     {}
 
     /** Get (wrapped) input stream for given file.
@@ -201,10 +201,10 @@ private:
 } // namespace
 
 RoArchive::dpointer
-RoArchive::tarball(const boost::filesystem::path &path, std::size_t limit
-                   , const FileHint &hint)
+RoArchive::tarball(const boost::filesystem::path &path
+                   , const OpenOptions &openOptions)
 {
-    return std::make_shared<Tarball>(path, limit, hint);
+    return std::make_shared<Tarball>(path, openOptions);
 }
 
 } // namespace roarchive

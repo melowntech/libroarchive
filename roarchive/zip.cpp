@@ -32,6 +32,7 @@
 #include "utility/zip.hpp"
 
 #include "./detail.hpp"
+#include "./io.hpp"
 
 namespace fs = boost::filesystem;
 namespace bio = boost::iostreams;
@@ -81,10 +82,9 @@ findPrefix(const fs::path &path, const FileHint &hint
 
 class Zip : public RoArchive::Detail {
 public:
-    Zip(const boost::filesystem::path &path, std::size_t limit
-        , const FileHint &hint)
-        : Detail(path), reader_(path, limit)
-        , prefix_(findPrefix(path, hint, reader_.files()))
+    Zip(const boost::filesystem::path &path, const OpenOptions &openOptions)
+        : Detail(path), reader_(path, openOptions.fileLimit)
+        , prefix_(findPrefix(path, openOptions.hint, reader_.files()))
     {
         for (const auto &file : reader_.files()) {
             if (!utility::isPathPrefix(file.path, prefix_)) { continue; }
@@ -103,7 +103,7 @@ public:
     {
         auto findex(index_.find(path.string()));
         if (findex == index_.end()) {
-            LOGTHROW(err2, Error)
+            LOGTHROW(err2, NoSuchFile)
                 << "File " << path << " not found in the zip archive at "
                 << path_ << ".";
         }
@@ -161,10 +161,9 @@ private:
 } // namespace
 
 RoArchive::dpointer RoArchive::zip(const boost::filesystem::path &path
-                                   , std::size_t limit
-                                   , const FileHint &hint)
+                                   , const OpenOptions &openOptions)
 {
-    return std::make_shared<Zip>(path, limit, hint);
+    return std::make_shared<Zip>(path, openOptions);
 }
 
 } // namespace roarchive

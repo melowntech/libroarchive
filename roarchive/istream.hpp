@@ -26,6 +26,7 @@
 #ifndef roarchive_istream_hpp_included_
 #define roarchive_istream_hpp_included_
 
+#include <ctime>
 #include <iostream>
 #include <memory>
 #include <functional>
@@ -46,8 +47,9 @@ public:
 
     IStream(const IStream::FilterInit &filterInit
             , const boost::optional<std::size_t> &size = boost::none
-            , bool seekable = true)
-        : stacked_(false), seekable_(seekable)
+            , bool seekable = true
+            , std::time_t timestamp = -1)
+        : stacked_(false), seekable_(seekable), timestamp_(timestamp)
     {
         if (filterInit) { filterInit(fis_); }
         if (!fis_.size()) {
@@ -67,6 +69,10 @@ public:
     /** File size, if known.
      */
     boost::optional<std::size_t> size() const { return size_; }
+
+    /** File timestamp. Value < 0 marks now.
+     */
+    std::time_t timestamp() const { return timestamp_; }
 
     bool seekable() const { return seekable_; }
 
@@ -92,6 +98,7 @@ private:
     bool stacked_;
     bool seekable_;
     boost::optional<std::size_t> size_;
+    std::time_t timestamp_;
 };
 
 // support operations

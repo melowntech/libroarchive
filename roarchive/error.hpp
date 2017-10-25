@@ -46,6 +46,10 @@ struct NotAnArchive : Error {
     NotAnArchive(const std::string &msg) : Error(msg) {}
 };
 
+struct NoSuchFile : Error {
+    NoSuchFile(const std::string &msg) : Error(msg) {}
+};
+
 } // namespace roarchive
 
 #endif // roarchive_error_hpp_included_

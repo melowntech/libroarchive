@@ -30,6 +30,7 @@
 #include <memory>
 #include <functional>
 #include <initializer_list>
+#include <limits>
 
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
@@ -67,6 +68,8 @@ struct FileHint {
 
 typedef std::vector<boost::filesystem::path> Files;
 
+struct OpenOptions;
+
 /** Generic read-only archive.
  *  One of plain directory, tarball or zip archive.
  *
@@ -75,6 +78,15 @@ typedef std::vector<boost::filesystem::path> Files;
  */
 class RoArchive {
 public:
+    /** Opens read-only archive at given path.
+     */
+    RoArchive(const boost::filesystem::path &path);
+
+    /** Opens read-only archive at given path.
+     */
+    RoArchive(const boost::filesystem::path &path
+              , const OpenOptions &openOptions);
+
     /** Opens read-only archive at given path
      *
      * Hint is name of filename known to the user. All access is adjusted to
@@ -167,15 +179,38 @@ private:
     bool directio_;
 
     static dpointer directory(const boost::filesystem::path &path
-                              , std::size_t limit, const FileHint &hint);
+                              , const OpenOptions &openOptions);
     static dpointer tarball(const boost::filesystem::path &path
-                            , std::size_t limit, const FileHint &hint);
+                            , const OpenOptions &openOptions);
     static dpointer zip(const boost::filesystem::path &path
-                        , std::size_t limit, const FileHint &hint);
+                        , const OpenOptions &openOptions);
 
     static dpointer factory(const boost::filesystem::path &path
-                            , std::size_t limit, const FileHint &hint
-                            , std::string mime);
+                            , const OpenOptions &openOptions);
+};
+
+/** Unifided open options;
+ */
+struct OpenOptions {
+    FileHint hint;
+    std::size_t fileLimit;
+    std::string mime;
+
+    OpenOptions()
+        : fileLimit(std::numeric_limits<std::size_t>::max())
+    {}
+
+    OpenOptions& setHint(FileHint v) {
+        hint = std::move(v); return *this;
+    }
+
+    OpenOptions& setFileLimit(std::size_t v) {
+        fileLimit = std::move(v); return *this;
+    }
+
+    OpenOptions& setMime(std::string v) {
+        mime = std::move(v); return *this;
+    }
 };
 
 } // namespace roarchive

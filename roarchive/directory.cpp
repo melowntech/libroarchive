@@ -49,8 +49,10 @@ public:
         try {
             auto source(bio::file_source(path.string()));
             if (!source.is_open()) {
-            LOGTHROW(err2, Error)
-                << "Cannot open file file " << path << ".";
+                // TODO: really? distinguish
+                // should we use open(2)?
+                LOGTHROW(err2, NoSuchFile)
+                    << "Cannot open file file " << path << ".";
             }
 
             fis_.push(std::move(source));
@@ -150,10 +152,10 @@ private:
 } // namespace
 
 RoArchive::dpointer
-RoArchive::directory(const fs::path &path, std::size_t, const FileHint &hint)
+RoArchive::directory(const fs::path &path, const OpenOptions &openOptions)
 {
     // do not apply any limit
-    return std::make_shared<Directory>(path, hint);
+    return std::make_shared<Directory>(path, openOptions.hint);
 }
 
 } // namespace roarchive

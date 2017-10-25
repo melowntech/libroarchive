@@ -43,37 +43,51 @@ namespace bio = boost::iostreams;
 
 namespace roarchive {
 
-namespace {
-const auto NoLimit(std::numeric_limits<std::size_t>::max());
-} // namespace
-
 RoArchive::dpointer
-RoArchive::factory(const boost::filesystem::path &path, std::size_t limit
-                   , const FileHint &hint, std::string mime)
+RoArchive::factory(const boost::filesystem::path &path
+                   , const OpenOptions &openOptions)
 {
     // detect MIME type if not provided ahead
-    if (mime.empty()) { mime = utility::Magic().mime(path);  }
+    const auto magic(openOptions.mime.empty()
+                     ? utility::Magic().mime(path)
+                     : openOptions.mime);
 
-    if (mime == "inode/directory") { return directory(path, limit, hint); }
-    if (mime == "application/x-tar") { return tarball(path, limit, hint); }
-    if (mime == "application/zip") { return zip(path, limit, hint); }
+    if (magic == "inode/directory") { return directory(path, openOptions); }
+    if (magic == "application/x-tar") { return tarball(path, openOptions); }
+    if (magic == "application/zip") { return zip(path, openOptions); }
 
     LOGTHROW(err2, NotAnArchive)
-        << "Unsupported archive type <" << mime << ">.";
+        << "Unsupported archive type <" << magic << ">.";
     return {};
+}
+
+RoArchive::RoArchive(const boost::filesystem::path &path)
+    : path_(path), detail_(factory(path, {}))
+    , directio_(detail_->directio())
+{
+}
+
+RoArchive::RoArchive(const boost::filesystem::path &path
+                     , const OpenOptions &openOptions)
+    : path_(path), detail_(factory(path, openOptions))
+    , directio_(detail_->directio())
+{
 }
 
 RoArchive::RoArchive(const boost::filesystem::path &path, const FileHint &hint
                      , const std::string &mime)
-    : path_(path), detail_(factory(path, NoLimit, hint, mime))
+    : path_(path)
+    , detail_(factory(path, OpenOptions().setHint(hint).setMime(mime)))
     , directio_(detail_->directio())
 {
-    LOG(info4) << "archive created";
 }
 
 RoArchive::RoArchive(const boost::filesystem::path &path, std::size_t limit
                      , const FileHint &hint, const std::string &mime)
-    : path_(path), detail_(factory(path, limit, hint, mime))
+    : path_(path)
+    , detail_(factory(path, OpenOptions().setFileLimit(limit)
+                      .setHint(hint)
+                      .setMime(mime)))
     , directio_(detail_->directio())
 {}
 
