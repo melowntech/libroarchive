@@ -43,18 +43,22 @@ namespace {
 
 class ZipIStream : public IStream {
 public:
-    ZipIStream(const utility::zip::Reader &reader, std::size_t index
-               , const IStream::FilterInit &filterInit)
-        : IStream(filterInit), pf_(reader.plug(index, fis_))
+    ZipIStream(const utility::zip::Reader &reader, std::size_t zipIndex
+               , const IStream::FilterInit &filterInit
+               , const fs::path &index)
+        : IStream(filterInit), pf_(reader.plug(zipIndex, fis_))
+        , index_(index)
     {
         update(pf_.uncompressedSize, pf_.seekable);
     }
 
     virtual fs::path path() const { return pf_.path; }
+    virtual fs::path index() const { return index_; }
     virtual void close() {}
 
 private:
     utility::zip::PluggedFile pf_;
+    const fs::path index_;
 };
 
 boost::filesystem::path
@@ -109,7 +113,7 @@ public:
         }
 
         return std::make_shared<ZipIStream>
-            (reader_, findex->second.index, filterInit);
+            (reader_, findex->second.index, filterInit, path);
     }
 
     virtual bool exists(const boost::filesystem::path &path) const {

@@ -53,6 +53,7 @@ public:
     }
 
     virtual fs::path path() const { return path_; }
+    virtual fs::path index() const { return path_; }
     virtual void close() {}
 
 private:

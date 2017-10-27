@@ -62,7 +62,15 @@ public:
     }
 
     virtual ~IStream() {}
+
+    /** Real full path inside the archive.
+     */
     virtual boost::filesystem::path path() const = 0;
+
+    /** Path this stream was obtained by from the index.
+     */
+    virtual boost::filesystem::path index() const = 0;
+
     virtual std::istream& get() { return fis_; }
     virtual void close() = 0;
 

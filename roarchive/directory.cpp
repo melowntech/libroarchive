@@ -43,8 +43,9 @@ namespace {
 
 class FileIStream : public IStream {
 public:
-    FileIStream(const fs::path &path, const IStream::FilterInit &filterInit)
-        : IStream(filterInit), path_(path)
+    FileIStream(const fs::path &path, const IStream::FilterInit &filterInit
+                , const fs::path &index)
+        : IStream(filterInit), path_(path), index_(index)
     {
         try {
             auto source(bio::file_source(path.string()));
@@ -63,10 +64,12 @@ public:
     }
 
     virtual fs::path path() const { return path_; }
+    virtual fs::path index() const { return index_; }
     virtual void close() {}
 
 private:
     const fs::path path_;
+    const fs::path index_;
 };
 
 fs::path applyHintToPath(const fs::path &path, const FileHint &hint)
@@ -112,9 +115,9 @@ public:
         const
     {
         if (path.is_absolute()) {
-            return std::make_shared<FileIStream>(path, filterInit);
+            return std::make_shared<FileIStream>(path, filterInit, path);
         }
-        return std::make_shared<FileIStream>(path_ / path, filterInit);
+        return std::make_shared<FileIStream>(path_ / path, filterInit, path);
     }
 
     virtual bool exists(const fs::path &path) const {
