@@ -158,6 +158,10 @@ public:
      */
     RoArchive& applyHint(const FileHint &hint = FileHint());
 
+    /** Check for underlying data change.
+     */
+    bool changed() const;
+
     /** Internal implementation.
      */
     struct Detail;

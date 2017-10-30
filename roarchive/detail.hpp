@@ -28,15 +28,17 @@
 
 #include <vector>
 
+#include "utility/filesystem.hpp"
+
 #include "./roarchive.hpp"
 
 namespace roarchive {
 
 class RoArchive::Detail {
 public:
-    Detail(const boost::filesystem::path &path
-           , bool directio = false)
+    Detail(const boost::filesystem::path &path, bool directio = false)
         : path_(path), directio_(directio)
+        , stat_(utility::FileStat::from(path, std::nothrow))
     {}
 
     virtual ~Detail() {}
@@ -64,11 +66,14 @@ public:
 
     virtual void applyHint(const FileHint &hint) = 0;
 
+    bool changed() const;
+
     bool directio() const { return directio_; }
 
 protected:
     boost::filesystem::path path_;
     bool directio_;
+    utility::FileStat stat_;
 };
 
 class FileHint::Matcher {

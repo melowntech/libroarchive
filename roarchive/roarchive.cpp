@@ -163,6 +163,16 @@ RoArchive& RoArchive::applyHint(const FileHint &hint)
     return *this;
 }
 
+bool RoArchive::Detail::changed() const
+{
+    return stat_.changed(utility::FileStat::from(path_, std::nothrow));
+}
+
+bool RoArchive::changed() const
+{
+    return detail_->changed();
+}
+
 void copy(const IStream::pointer &in, std::ostream &out)
 {
     bio::copy(in->get(), out);
