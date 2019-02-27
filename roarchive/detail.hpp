@@ -30,7 +30,7 @@
 
 #include "utility/filesystem.hpp"
 
-#include "./roarchive.hpp"
+#include "roarchive.hpp"
 
 namespace roarchive {
 

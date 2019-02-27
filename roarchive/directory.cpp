@@ -31,8 +31,8 @@
 
 #include "utility/path.hpp"
 
-#include "./detail.hpp"
-#include "./io.hpp"
+#include "detail.hpp"
+#include "io.hpp"
 
 namespace fs = boost::filesystem;
 namespace bio = boost::iostreams;

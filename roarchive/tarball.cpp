@@ -32,8 +32,8 @@
 #include "utility/substream.hpp"
 #include "utility/streams.hpp"
 
-#include "./detail.hpp"
-#include "./io.hpp"
+#include "detail.hpp"
+#include "io.hpp"
 
 namespace fs = boost::filesystem;
 

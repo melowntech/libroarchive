@@ -34,9 +34,9 @@
 #include "utility/binaryio.hpp"
 #include "utility/streams.hpp"
 
-#include "./roarchive.hpp"
-#include "./detail.hpp"
-#include "./error.hpp"
+#include "roarchive.hpp"
+#include "detail.hpp"
+#include "error.hpp"
 
 namespace fs = boost::filesystem;
 namespace bio = boost::iostreams;

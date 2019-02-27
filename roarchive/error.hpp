@@ -34,7 +34,7 @@
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
 
-#include "./istream.hpp"
+#include "istream.hpp"
 
 namespace roarchive {
 

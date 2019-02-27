@@ -31,7 +31,7 @@
 
 #include "utility/streams.hpp"
 
-#include "./roarchive.hpp"
+#include "roarchive.hpp"
 
 namespace roarchive {
 
