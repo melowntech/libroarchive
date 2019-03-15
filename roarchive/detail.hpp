@@ -70,6 +70,8 @@ public:
 
     bool directio() const { return directio_; }
 
+    const boost::filesystem::path &path() { return path_; }
+
 protected:
     boost::filesystem::path path_;
     bool directio_;

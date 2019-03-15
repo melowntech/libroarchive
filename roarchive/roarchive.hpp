@@ -168,10 +168,6 @@ public:
     typedef std::shared_ptr<Detail> dpointer;
 
 private:
-    /** Path to archive.
-     */
-    boost::filesystem::path path_;
-
     /** Internal implementation.
      */
     dpointer detail_;
@@ -189,23 +185,29 @@ private:
     static dpointer zip(const boost::filesystem::path &path
                         , const OpenOptions &openOptions);
 
-    static dpointer factory(const boost::filesystem::path &path
-                            , const OpenOptions &openOptions);
+    static dpointer factory(boost::filesystem::path path
+                            , OpenOptions openOptions);
 };
 
 /** Unifided open options;
  */
 struct OpenOptions {
     FileHint hint;
+    char inlineHint;
     std::size_t fileLimit;
     std::string mime;
 
     OpenOptions()
-        : fileLimit(std::numeric_limits<std::size_t>::max())
+        : inlineHint(0)
+        , fileLimit(std::numeric_limits<std::size_t>::max())
     {}
 
     OpenOptions& setHint(FileHint v) {
         hint = std::move(v); return *this;
+    }
+
+    OpenOptions& setInlineHint(char v) {
+        inlineHint = v; return *this;
     }
 
     OpenOptions& setFileLimit(std::size_t v) {

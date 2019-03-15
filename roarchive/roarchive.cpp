@@ -44,9 +44,20 @@ namespace bio = boost::iostreams;
 namespace roarchive {
 
 RoArchive::dpointer
-RoArchive::factory(const boost::filesystem::path &path
-                   , const OpenOptions &openOptions)
+RoArchive::factory(boost::filesystem::path path
+                   , OpenOptions openOptions)
 {
+    if (openOptions.inlineHint) {
+        // check for inline hint
+        const auto str(path.string());
+        auto split(str.find(openOptions.inlineHint));
+        if (split != std::string::npos) {
+            // found, update path and replace any hint with path suffix
+            path = str.substr(0, split);
+            openOptions.hint = str.substr(split + 1);
+        }
+    }
+
     // detect MIME type if not provided ahead
     const auto magic(openOptions.mime.empty()
                      ? utility::Magic().mime(path)
@@ -62,30 +73,28 @@ RoArchive::factory(const boost::filesystem::path &path
 }
 
 RoArchive::RoArchive(const boost::filesystem::path &path)
-    : path_(path), detail_(factory(path, {}))
+    : detail_(factory(path, {}))
     , directio_(detail_->directio())
 {
 }
 
 RoArchive::RoArchive(const boost::filesystem::path &path
                      , const OpenOptions &openOptions)
-    : path_(path), detail_(factory(path, openOptions))
+    : detail_(factory(path, openOptions))
     , directio_(detail_->directio())
 {
 }
 
 RoArchive::RoArchive(const boost::filesystem::path &path, const FileHint &hint
                      , const std::string &mime)
-    : path_(path)
-    , detail_(factory(path, OpenOptions().setHint(hint).setMime(mime)))
+    : detail_(factory(path, OpenOptions().setHint(hint).setMime(mime)))
     , directio_(detail_->directio())
 {
 }
 
 RoArchive::RoArchive(const boost::filesystem::path &path, std::size_t limit
                      , const FileHint &hint, const std::string &mime)
-    : path_(path)
-    , detail_(factory(path, OpenOptions().setFileLimit(limit)
+    : detail_(factory(path, OpenOptions().setFileLimit(limit)
                       .setHint(hint)
                       .setMime(mime)))
     , directio_(detail_->directio())
@@ -124,7 +133,7 @@ boost::optional<fs::path> RoArchive::findFile(const std::string &filename)
 boost::filesystem::path RoArchive::path(const boost::filesystem::path &path)
     const
 {
-    return path.is_absolute() ? path : (path_ / path);
+    return path.is_absolute() ? path : (detail_->path() / path);
 }
 
 std::vector<char> IStream::read()
@@ -165,7 +174,8 @@ RoArchive& RoArchive::applyHint(const FileHint &hint)
 
 bool RoArchive::Detail::changed() const
 {
-    return stat_.changed(utility::FileStat::from(path_, std::nothrow));
+    return stat_.changed
+        (utility::FileStat::from(path_, std::nothrow));
 }
 
 bool RoArchive::changed() const
