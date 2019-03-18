@@ -60,7 +60,7 @@ private:
     const fs::path path_;
 };
 
-boost::filesystem::path
+HintedPath
 findPrefix(const fs::path &path, const FileHint &hint
            , const utility::tar::Reader::File::list &files)
 {
@@ -70,7 +70,7 @@ findPrefix(const fs::path &path, const FileHint &hint
     FileHint::Matcher matcher(hint);
     for (const auto &file : files) {
         if (matcher(file.path)) {
-            return file.path.parent_path();
+            return HintedPath(file.path.parent_path(), file.path.filename());
         }
     }
 
@@ -80,7 +80,8 @@ findPrefix(const fs::path &path, const FileHint &hint
             << path << ".";
     }
 
-    return matcher.match().parent_path();
+    return HintedPath(matcher.match().parent_path()
+                      , matcher.match().filename());
 }
 
 class TarIndex {
@@ -90,13 +91,12 @@ public:
     TarIndex(utility::tar::Reader &reader, const OpenOptions &openOptions)
         : path_(reader.path()), files_(reader.files(openOptions.fileLimit))
         , fd_(reader.filedes())
+        , prefix_(findPrefix(path_, openOptions.hint, files_))
     {
-        const auto prefix(findPrefix(path_, openOptions.hint, files_));
-
         for (const auto &file : files_) {
-            if (!utility::isPathPrefix(file.path, prefix)) { continue; }
+            if (!utility::isPathPrefix(file.path, prefix_.path)) { continue; }
 
-            const auto path(utility::cutPathPrefix(file.path, prefix));
+            const auto path(utility::cutPathPrefix(file.path, prefix_.path));
             index_.insert(map::value_type
                               (path.string()
                                , { fd_, file.start, file.end() }));
@@ -136,17 +136,21 @@ public:
     void applyHint(const FileHint &hint) {
         if (!hint) { return; }
         // regenerate
-        const auto prefix(findPrefix(path_, hint, files_));
+        prefix_ = findPrefix(path_, hint, files_);
         index_.clear();
 
         for (const auto &file : files_) {
-            if (!utility::isPathPrefix(file.path, prefix)) { continue; }
+            if (!utility::isPathPrefix(file.path, prefix_.path)) { continue; }
 
-            const auto path(utility::cutPathPrefix(file.path, prefix));
+            const auto path(utility::cutPathPrefix(file.path, prefix_.path));
             index_.insert(map::value_type
                               (path.string()
                                , { fd_, file.start, file.end() }));
         }
+    }
+
+    const boost::optional<fs::path>& usedHint() const {
+        return prefix_.usedHint;
     }
 
 private:
@@ -155,6 +159,7 @@ private:
     int fd_;
     typedef std::map<std::string, Filedes> map;
     map index_;
+    HintedPath prefix_;
 };
 
 class Tarball : public RoArchive::Detail {
@@ -192,6 +197,10 @@ public:
 
     virtual void applyHint(const FileHint &hint) {
         index_.applyHint(hint);
+    }
+
+    virtual const boost::optional<boost::filesystem::path>& usedHint() {
+        return index_.usedHint();
     }
 
 private:

@@ -162,6 +162,10 @@ public:
      */
     bool changed() const;
 
+    /** Used hint filename, if any.
+     */
+    boost::optional<boost::filesystem::path> usedHint() const;
+
     /** Internal implementation.
      */
     struct Detail;

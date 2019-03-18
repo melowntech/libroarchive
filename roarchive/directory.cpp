@@ -72,20 +72,24 @@ private:
     const fs::path index_;
 };
 
-fs::path applyHintToPath(const fs::path &path, const FileHint &hint)
+HintedPath applyHintToPath(const fs::path &path, const FileHint &hint)
 {
     if (!hint) { return path; }
 
-    auto hintPath([&]() -> boost::optional<fs::path>
+    auto hintPath([&]() -> boost::optional<HintedPath>
     {
         FileHint::Matcher matcher(hint);
         for (fs::recursive_directory_iterator i(path), e; i != e; ++i) {
             if (matcher(i->path())) {
-                return i->path().parent_path();
+                return HintedPath(i->path().parent_path()
+                                  , i->path().filename());
             }
         }
 
-        if (matcher) { return matcher.match().parent_path(); }
+        if (matcher) {
+            return HintedPath(matcher.match().parent_path()
+                              , matcher.match().filename());
+        }
 
         return boost::none;
     }());
@@ -100,10 +104,22 @@ fs::path applyHintToPath(const fs::path &path, const FileHint &hint)
     return *hintPath;
 }
 
-class Directory : public RoArchive::Detail {
+struct DirectoryBase {
+    DirectoryBase(const fs::path &path, const FileHint &hint)
+        : hintedPath_(applyHintToPath(path, hint))
+    {}
+
+    HintedPath hintedPath_;
+};
+
+class Directory
+    : private DirectoryBase
+    , public RoArchive::Detail
+{
 public:
     Directory(const fs::path &path, const FileHint &hint)
-        : Detail(applyHintToPath(path, hint), true)
+        : DirectoryBase(path, hint)
+        , Detail(hintedPath_.path, true)
         , originalPath_(path)
     {}
 
@@ -145,7 +161,12 @@ public:
     }
 
     virtual void applyHint(const FileHint &hint) {
-        path_ = applyHintToPath(originalPath_, hint);
+        hintedPath_ = applyHintToPath(originalPath_, hint);
+        path_ = hintedPath_.path;
+    }
+
+    virtual const boost::optional<boost::filesystem::path>& usedHint() {
+        return hintedPath_.usedHint;
     }
 
 private:

@@ -44,8 +44,7 @@ namespace bio = boost::iostreams;
 namespace roarchive {
 
 RoArchive::dpointer
-RoArchive::factory(boost::filesystem::path path
-                   , OpenOptions openOptions)
+RoArchive::factory(fs::path path, OpenOptions openOptions)
 {
     if (openOptions.inlineHint) {
         // check for inline hint
@@ -72,27 +71,27 @@ RoArchive::factory(boost::filesystem::path path
     return {};
 }
 
-RoArchive::RoArchive(const boost::filesystem::path &path)
+RoArchive::RoArchive(const fs::path &path)
     : detail_(factory(path, {}))
     , directio_(detail_->directio())
 {
 }
 
-RoArchive::RoArchive(const boost::filesystem::path &path
+RoArchive::RoArchive(const fs::path &path
                      , const OpenOptions &openOptions)
     : detail_(factory(path, openOptions))
     , directio_(detail_->directio())
 {
 }
 
-RoArchive::RoArchive(const boost::filesystem::path &path, const FileHint &hint
+RoArchive::RoArchive(const fs::path &path, const FileHint &hint
                      , const std::string &mime)
     : detail_(factory(path, OpenOptions().setHint(hint).setMime(mime)))
     , directio_(detail_->directio())
 {
 }
 
-RoArchive::RoArchive(const boost::filesystem::path &path, std::size_t limit
+RoArchive::RoArchive(const fs::path &path, std::size_t limit
                      , const FileHint &hint, const std::string &mime)
     : detail_(factory(path, OpenOptions().setFileLimit(limit)
                       .setHint(hint)
@@ -100,7 +99,7 @@ RoArchive::RoArchive(const boost::filesystem::path &path, std::size_t limit
     , directio_(detail_->directio())
 {}
 
-IStream::pointer RoArchive::istream(const boost::filesystem::path &path) const
+IStream::pointer RoArchive::istream(const fs::path &path) const
 {
     auto is(detail_->istream(path));
     // set exceptions
@@ -109,7 +108,7 @@ IStream::pointer RoArchive::istream(const boost::filesystem::path &path) const
     return is;
 }
 
-IStream::pointer RoArchive::istream(const boost::filesystem::path &path
+IStream::pointer RoArchive::istream(const fs::path &path
                                     , const IStream::FilterInit &filterInit)
     const
 {
@@ -119,7 +118,7 @@ IStream::pointer RoArchive::istream(const boost::filesystem::path &path
     return is;
 }
 
-bool RoArchive::exists(const boost::filesystem::path &path) const
+bool RoArchive::exists(const fs::path &path) const
 {
     return detail_->exists(path);
 }
@@ -130,8 +129,7 @@ boost::optional<fs::path> RoArchive::findFile(const std::string &filename)
     return detail_->findFile(filename);
 }
 
-boost::filesystem::path RoArchive::path(const boost::filesystem::path &path)
-    const
+fs::path RoArchive::path(const fs::path &path) const
 {
     return path.is_absolute() ? path : (detail_->path() / path);
 }
@@ -183,19 +181,25 @@ bool RoArchive::changed() const
     return detail_->changed();
 }
 
+
+boost::optional<boost::filesystem::path> RoArchive::usedHint() const
+{
+    return detail_->usedHint();
+}
+
 void copy(const IStream::pointer &in, std::ostream &out)
 {
     bio::copy(in->get(), out);
 }
 
-void copy(const IStream::pointer &in, const boost::filesystem::path &out)
+void copy(const IStream::pointer &in, const fs::path &out)
 {
     utility::ofstreambuf of(out.string());
     copy(in, of);
     of.flush();
 }
 
-bool FileHint::Matcher::operator()(const boost::filesystem::path &path)
+bool FileHint::Matcher::operator()(const fs::path &path)
 {
     const auto &fname(path.filename());
 

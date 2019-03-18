@@ -28,6 +28,8 @@
 
 #include <vector>
 
+#include <boost/optional.hpp>
+
 #include "utility/filesystem.hpp"
 
 #include "roarchive.hpp"
@@ -72,10 +74,25 @@ public:
 
     const boost::filesystem::path &path() { return path_; }
 
+    virtual const boost::optional<boost::filesystem::path>& usedHint() = 0;
+
 protected:
     boost::filesystem::path path_;
     bool directio_;
     utility::FileStat stat_;
+};
+
+struct HintedPath {
+    boost::filesystem::path path;
+    boost::optional<boost::filesystem::path> usedHint;
+
+    HintedPath(const boost::filesystem::path &path = boost::filesystem::path()
+               , const boost::optional<boost::filesystem::path> &usedHint
+               = boost::none)
+        : path(path), usedHint(usedHint)
+    {}
+
+    operator const boost::filesystem::path&() const { return path; }
 };
 
 class FileHint::Matcher {

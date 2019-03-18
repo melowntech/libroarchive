@@ -61,7 +61,7 @@ private:
     const fs::path index_;
 };
 
-boost::filesystem::path
+HintedPath
 findPrefix(const fs::path &path, const FileHint &hint
            , const utility::zip::Reader::Record::list &files)
 {
@@ -71,7 +71,7 @@ findPrefix(const fs::path &path, const FileHint &hint
     FileHint::Matcher matcher(hint);
     for (const auto &file : files) {
         if (matcher(file.path)) {
-            return file.path.parent_path();
+            return HintedPath(file.path.parent_path(), file.path.filename());
         }
     }
 
@@ -81,7 +81,8 @@ findPrefix(const fs::path &path, const FileHint &hint
             << path << ".";
     }
 
-    return matcher.match().parent_path();
+    return HintedPath(matcher.match().parent_path()
+                      , matcher.match().filename());
 }
 
 class Zip : public RoArchive::Detail {
@@ -91,9 +92,9 @@ public:
         , prefix_(findPrefix(path, openOptions.hint, reader_.files()))
     {
         for (const auto &file : reader_.files()) {
-            if (!utility::isPathPrefix(file.path, prefix_)) { continue; }
+            if (!utility::isPathPrefix(file.path, prefix_.path)) { continue; }
 
-            const auto path(utility::cutPathPrefix(file.path, prefix_));
+            const auto path(utility::cutPathPrefix(file.path, prefix_.path));
             index_.insert(map::value_type(path.string(), file));
         }
     }
@@ -147,16 +148,20 @@ public:
         index_.clear();
 
         for (const auto &file : reader_.files()) {
-            if (!utility::isPathPrefix(file.path, prefix_)) { continue; }
+            if (!utility::isPathPrefix(file.path, prefix_.path)) { continue; }
 
-            const auto path(utility::cutPathPrefix(file.path, prefix_));
+            const auto path(utility::cutPathPrefix(file.path, prefix_.path));
             index_.insert(map::value_type(path.string(), file));
         }
     }
 
+    virtual const boost::optional<boost::filesystem::path>& usedHint() {
+        return prefix_.usedHint;
+    }
+
 private:
     utility::zip::Reader reader_;
-    fs::path prefix_;
+    HintedPath prefix_;
 
     typedef std::map<std::string, utility::zip::Reader::Record> map;
     map index_;
