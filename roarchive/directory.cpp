@@ -29,6 +29,7 @@
 
 #include "dbglog/dbglog.hpp"
 
+#include "utility/cppversion.hpp"
 #include "utility/path.hpp"
 
 #include "detail.hpp"
@@ -131,9 +132,9 @@ public:
         const
     {
         if (path.is_absolute()) {
-            return std::make_shared<FileIStream>(path, filterInit, path);
+            return std::make_unique<FileIStream>(path, filterInit, path);
         }
-        return std::make_shared<FileIStream>(path_ / path, filterInit, path);
+        return std::make_unique<FileIStream>(path_ / path, filterInit, path);
     }
 
     virtual bool exists(const fs::path &path) const {

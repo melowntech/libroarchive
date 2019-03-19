@@ -1,6 +1,6 @@
 
 # bump version here
-set(roarchive_VERSION 1.7)
+set(roarchive_VERSION 1.8)
 
 define_module(LIBRARY roarchive=${roarchive_VERSION}
   DEPENDS utility>=1.21
@@ -9,9 +9,11 @@ define_module(LIBRARY roarchive=${roarchive_VERSION}
   )
 
 set(roarchive_SOURCES
-  roarchive.hpp roarchive.cpp
-  detail.hpp directory.cpp
-  tarball.cpp zip.cpp
+  io.hpp
+  istream.hpp
+  error.hpp
+  roarchive.hpp roarchive.cpp detail.hpp
+  directory.cpp tarball.cpp zip.cpp
   )
 
 add_library(roarchive STATIC

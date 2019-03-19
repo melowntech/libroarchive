@@ -27,6 +27,7 @@
 
 #include "dbglog/dbglog.hpp"
 
+#include "utility/cppversion.hpp"
 #include "utility/streams.hpp"
 #include "utility/path.hpp"
 #include "utility/zip.hpp"
@@ -113,7 +114,7 @@ public:
                 << path_ << ".";
         }
 
-        return std::make_shared<ZipIStream>
+        return std::make_unique<ZipIStream>
             (reader_, findex->second.index, filterInit, path);
     }
 

@@ -41,7 +41,7 @@ namespace roarchive {
  */
 class IStream {
 public:
-    typedef std::shared_ptr<IStream> pointer;
+    typedef std::unique_ptr<IStream> pointer;
     typedef std::function<void(boost::iostreams::filtering_istream&)
                           > FilterInit;
 

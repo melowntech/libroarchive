@@ -27,6 +27,7 @@
 
 #include "dbglog/dbglog.hpp"
 
+#include "utility/cppversion.hpp"
 #include "utility/tar.hpp"
 #include "utility/path.hpp"
 #include "utility/substream.hpp"
@@ -176,7 +177,7 @@ public:
                                      , const IStream::FilterInit &filterInit)
         const
     {
-        return std::make_shared<TarIStream>(path, index_.file(path.string())
+        return std::make_unique<TarIStream>(path, index_.file(path.string())
                                             , filterInit);
     }
 
