@@ -3,7 +3,7 @@
 set(roarchive_VERSION 1.8)
 
 define_module(LIBRARY roarchive=${roarchive_VERSION}
-  DEPENDS utility>=1.21
+  DEPENDS utility>=1.31
   Boost_FILESYSTEM Boost_IOSTREAMS
   MAGIC
   )
