@@ -68,11 +68,27 @@ findPrefix(const fs::path &path, const FileHint &hint
 {
     if (!hint) { return {}; }
 
+    // sort paths by depth
+    struct Path {
+        const fs::path *path;
+        std::size_t depth;
+
+        Path(const utility::zip::Reader::Record &record)
+            : path(&record.path)
+            , depth(std::distance(path->begin(), path->end())) {}
+        bool operator<(const Path &o) const { return depth < o.depth; }
+    };
+
+    std::vector<Path> paths;
+    paths.reserve(files.size());
+    for (const auto &file : files) { paths.emplace_back(file); }
+    std::sort(paths.begin(), paths.end());
+
     // match all files
     FileHint::Matcher matcher(hint);
-    for (const auto &file : files) {
-        if (matcher(file.path)) {
-            return HintedPath(file.path.parent_path(), file.path.filename());
+    for (const auto &path : paths) {
+        if (matcher(*path.path)) {
+            return HintedPath(path.path->parent_path(), path.path->filename());
         }
     }
 
