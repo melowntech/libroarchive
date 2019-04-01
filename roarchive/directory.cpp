@@ -24,6 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <queue>
+
 #include <boost/filesystem.hpp>
 #include <boost/iostreams/device/file.hpp>
 
@@ -79,12 +81,24 @@ HintedPath applyHintToPath(const fs::path &path, const FileHint &hint)
 
     auto hintPath([&]() -> boost::optional<HintedPath>
     {
+        // we need breadth-first search to find hint as close to root as
+        // possible (recursive_directory_iterator is depth-first)
+        std::queue<fs::path> queue;
+        queue.push(path);
+
         FileHint::Matcher matcher(hint);
-        for (fs::recursive_directory_iterator i(path), e; i != e; ++i) {
-            if (matcher(i->path())) {
-                return HintedPath(i->path().parent_path()
-                                  , i->path().filename());
+        while (!queue.empty()) {
+            for (fs::directory_iterator i(queue.front()), e; i != e; ++i) {
+                if (fs::is_directory(*i)) {
+                    // directory -> rememeber
+                    queue.push(i->path());
+                } else if (matcher(i->path())) {
+                    // non directory -> check
+                    return HintedPath(i->path().parent_path()
+                                      , i->path().filename());
+                }
             }
+            queue.pop();
         }
 
         if (matcher) {
