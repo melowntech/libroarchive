@@ -2,10 +2,23 @@
 # bump version here
 set(roarchive_VERSION 1.8)
 
+set(roarchive_EXTRA_SOURCES)
+set(roarchive_EXTRA_DEPENDS)
+set(roarchive_DEFINITIONS)
+if(MODULE_http_FOUND)
+  message(STATUS "roarchive: compiling in http support")
+  list(APPEND roarchive_EXTRA_DEPENDS http>=1.8)
+  list(APPEND roarchive_EXTRA_SOURCES http.cpp)
+  list(APPEND roarchive_DEFINITIONS ROARCHIVE_HAS_HTTP=1)
+else()
+  message(STATUS "roarchive: compiling without http support")
+endif()
+
 define_module(LIBRARY roarchive=${roarchive_VERSION}
-  DEPENDS utility>=1.31
+  DEPENDS ${roarchive_EXTRA_DEPENDS} utility>=1.31
   Boost_FILESYSTEM Boost_IOSTREAMS
   MAGIC
+  DEFINITIONS ${roarchive_DEFINITIONS}
   )
 
 set(roarchive_SOURCES
@@ -14,6 +27,7 @@ set(roarchive_SOURCES
   error.hpp
   roarchive.hpp roarchive.cpp detail.hpp
   directory.cpp tarball.cpp zip.cpp
+  ${roarchive_EXTRA_SOURCES}
   )
 
 add_library(roarchive STATIC

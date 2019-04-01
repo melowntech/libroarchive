@@ -50,6 +50,14 @@ struct NoSuchFile : Error {
     NoSuchFile(const std::string &msg) : Error(msg) {}
 };
 
+struct NotImplemented : Error {
+    NotImplemented(const std::string &msg) : Error(msg) {}
+};
+
+struct IOError : Error {
+    IOError(const std::string &msg) : Error(msg) {}
+};
+
 } // namespace roarchive
 
 #endif // roarchive_error_hpp_included_

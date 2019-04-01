@@ -166,6 +166,10 @@ public:
      */
     boost::optional<boost::filesystem::path> usedHint() const;
 
+    /** Returns true if archive is capable to read data with given schema.
+     */
+    bool handlesSchema(const std::string &schema) const;
+
     /** Internal implementation.
      */
     struct Detail;
@@ -188,6 +192,9 @@ private:
                             , const OpenOptions &openOptions);
     static dpointer zip(const boost::filesystem::path &path
                         , const OpenOptions &openOptions);
+
+    static dpointer http(const boost::filesystem::path &path
+                         , const OpenOptions &openOptions);
 
     static dpointer factory(boost::filesystem::path path
                             , OpenOptions openOptions);

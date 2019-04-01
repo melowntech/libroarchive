@@ -33,6 +33,7 @@
 #include "utility/magic.hpp"
 #include "utility/binaryio.hpp"
 #include "utility/streams.hpp"
+#include "utility/uri.hpp"
 
 #include "roarchive.hpp"
 #include "detail.hpp"
@@ -57,6 +58,16 @@ RoArchive::factory(fs::path path, OpenOptions openOptions)
         }
     }
 
+    if (openOptions.mime.empty()) {
+        // special handling for URL
+        try {
+            utility::Uri uri(path.string());
+            if ((uri.scheme() == "http") ||(uri.scheme() == "https")) {
+                openOptions.mime = "http";
+            }
+        } catch (...) {}
+    }
+
     // detect MIME type if not provided ahead
     const auto magic(openOptions.mime.empty()
                      ? utility::Magic().mime(path)
@@ -65,6 +76,9 @@ RoArchive::factory(fs::path path, OpenOptions openOptions)
     if (magic == "inode/directory") { return directory(path, openOptions); }
     if (magic == "application/x-tar") { return tarball(path, openOptions); }
     if (magic == "application/zip") { return zip(path, openOptions); }
+#ifdef ROARCHIVE_HAS_HTTP
+    if (magic == "http") { return http(path, openOptions); }
+#endif
 
     LOGTHROW(err2, NotAnArchive)
         << "Unsupported archive type <" << magic << ">.";
@@ -185,6 +199,11 @@ bool RoArchive::changed() const
 boost::optional<boost::filesystem::path> RoArchive::usedHint() const
 {
     return detail_->usedHint();
+}
+
+bool RoArchive::handlesSchema(const std::string &schema) const
+{
+    return detail_->handlesSchema(schema);
 }
 
 void copy(const IStream::pointer &in, std::ostream &out)

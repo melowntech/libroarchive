@@ -72,6 +72,8 @@ public:
 
     bool directio() const { return directio_; }
 
+    virtual bool handlesSchema(const std::string&) const { return false; }
+
     const boost::filesystem::path &path() { return path_; }
 
     virtual const boost::optional<boost::filesystem::path>& usedHint() = 0;
