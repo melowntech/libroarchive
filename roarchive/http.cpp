@@ -103,8 +103,7 @@ HintedPath applyHintToPath(const fs::path &path, const FileHint &hint)
 
     if (path.filename() != ".") {
         // some filename
-        auto ppath(path.parent_path());
-        ppath += '/';
+        auto ppath(path.parent_path().string() + "/");
         return HintedPath(ppath, path.filename());
     }
 
