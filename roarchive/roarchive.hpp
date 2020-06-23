@@ -145,6 +145,10 @@ public:
      */
     bool directio() const { return directio_; }
 
+    /** Returns path to whole archive.
+     */
+    boost::filesystem::path path() const;
+
     /** Returns path to file inside archive. Can be used to access file via
      *  directio.
      */

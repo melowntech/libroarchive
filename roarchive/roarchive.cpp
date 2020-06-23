@@ -143,6 +143,11 @@ boost::optional<fs::path> RoArchive::findFile(const std::string &filename)
     return detail_->findFile(filename);
 }
 
+fs::path RoArchive::path() const
+{
+    return detail().path();
+}
+
 fs::path RoArchive::path(const fs::path &path) const
 {
     return path.is_absolute() ? path : (detail_->path() / path);
