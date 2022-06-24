@@ -36,7 +36,7 @@ add_library(roarchive STATIC
   )
 buildsys_library(roarchive)
 target_link_libraries(roarchive ${MODULE_LIBRARIES})
-buildsys_target_compile_definitions(roarchive ${MODULE_DEFINITIONS})
+target_compile_definitions(roarchive PRIVATE ${MODULE_DEFINITIONS})
 
 add_subdirectory(test-roarchive EXCLUDE_FROM_ALL)
 
