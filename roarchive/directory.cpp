@@ -111,7 +111,7 @@ HintedPath applyHintToPath(const fs::path &path, const FileHint &hint)
 
     if (!hintPath) {
         LOGTHROW(err2, std::runtime_error)
-            << "No \"" << hint << "\" found in the zip archive at "
+            << "No \"" << hint << "\" found in the directory archive at "
             << path << ".";
     }
 
