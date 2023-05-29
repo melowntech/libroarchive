@@ -176,7 +176,7 @@ public:
 
     /** Internal implementation.
      */
-    struct Detail;
+    class Detail;
     typedef std::shared_ptr<Detail> dpointer;
 
 private:
